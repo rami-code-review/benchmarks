@@ -6,12 +6,27 @@ Source code samples for benchmarking Rami's code review quality. Based on OWASP 
 
 ```
 ├── go/
-│   ├── database.go    # Database ops (SQL injection, secrets, crypto, error handling, SSRF)
-│   └── service.go     # Business logic (race conditions, nil safety, loops, command injection)
+│   ├── database.go       # Database ops (SQL injection, secrets, crypto, error handling)
+│   ├── service.go        # Business logic (race conditions, nil safety, loops)
+│   ├── cve_patterns.go   # CVE-derived vulnerability patterns
+│   └── multifile/        # Multi-file context-dependent scenarios
+│       ├── handler.go
+│       ├── database.go
+│       └── executor.go
 ├── python/
-│   └── database.py    # Python patterns (SQL injection, deserialization, mutable defaults)
+│   ├── database.py       # Python patterns (SQL injection, deserialization)
+│   ├── cve_patterns.py   # CVE-derived vulnerability patterns
+│   └── multifile/        # Multi-file context-dependent scenarios
+│       ├── views.py
+│       ├── models.py
+│       └── validators.py
 ├── typescript/
-│   └── components.tsx # React components (XSS, null safety, command injection)
+│   ├── components.tsx    # React components (XSS, null safety)
+│   ├── cve_patterns.ts   # CVE-derived vulnerability patterns
+│   └── multifile/        # Multi-file context-dependent scenarios
+│       ├── api.ts
+│       ├── service.ts
+│       └── validators.ts
 └── README.md
 ```
 
@@ -40,11 +55,14 @@ rami benchmark --source ~/workspace/rami-benchmarks --local
 
 | Language   | Templates | Categories |
 |------------|-----------|------------|
-| Go         | 38        | security, error-handling, null-safety, logic, performance, maintainability |
-| Python     | 16        | security, error-handling, null-safety, logic, performance |
-| TypeScript | 16        | security, error-handling, null-safety, logic |
+| Go         | 50+       | security, error-handling, null-safety, logic, performance, CVE patterns |
+| Python     | 22+       | security, error-handling, null-safety, logic, CVE patterns |
+| TypeScript | 21+       | security, error-handling, null-safety, logic, CVE patterns |
 
-**Total: 70+ templates** including 5 false positive test cases.
+**Total: 93+ templates** including:
+- 5 false positive test cases
+- 8 multi-file context-dependent scenarios
+- 15 CVE-derived real-world patterns
 
 ## Difficulty Tiers
 
@@ -53,6 +71,7 @@ rami benchmark --source ~/workspace/rami-benchmarks --local
 | Easy   | Single-line patterns | Direct SQL concatenation, hardcoded secrets |
 | Medium | Multi-line context | Builder patterns, error shadowing |
 | Hard   | Cross-function | Indirect injection via variable, caller contracts |
+| Expert | Multi-file/CVE | Data flow across files, real-world vulnerability patterns |
 
 ## Defect Patterns Covered (CWE References)
 
@@ -61,29 +80,48 @@ rami benchmark --source ~/workspace/rami-benchmarks --local
 **SQL Injection (CWE-89)**
 - String concatenation, fmt.Sprintf, f-strings, template literals
 - Builder pattern injection, indirect via variable assignment
+- Multi-file data flow scenarios
 
 **Command Injection (CWE-78)**
 - Shell execution (sh -c, bash -c, shell=True)
 - os.system, child_process.exec, spawn with shell
+- Shellshock-style patterns (CVE-2014-6271)
 
 **Path Traversal (CWE-22)**
 - Unsanitized filepath.Join, missing base directory validation
 - os.path.join without basename extraction
+- Archive extraction without validation (CVE-2024-3094 style)
 
 **XSS (CWE-79)**
 - innerHTML, dangerouslySetInnerHTML, document.write, eval
+- Reflected XSS via URL parameters (CVE-2023-24488 style)
 
 **Hardcoded Secrets (CWE-798)**
 - API keys, passwords, tokens in source code
 
 **Insecure Deserialization (CWE-502)**
 - pickle.loads, yaml.load without safe_load
+- Jackson-databind style patterns (CVE-2024-22855)
 
 **Weak Cryptography (CWE-327/328)**
 - MD5, SHA1 for password hashing
 
 **SSRF (CWE-918)**
 - Unvalidated URL fetching, requests to user-provided URLs
+
+**XXE (CWE-611)**
+- XML parsing with external entities enabled
+
+### Authentication & Authorization
+
+**Authentication Bypass**
+- Missing auth checks on sensitive endpoints
+
+**IDOR (CWE-639)**
+- Resource access without ownership verification
+
+**Mass Assignment**
+- Direct request body to model without filtering
 
 ### Error Handling (CWE-755)
 
@@ -106,6 +144,7 @@ rami benchmark --source ~/workspace/rami-benchmarks --local
 
 - Off-by-one in loop bounds
 - Race conditions on shared variables
+- TOCTOU race conditions (CVE style)
 - Incorrect boolean operators (|| vs &&)
 - Assignment instead of comparison
 - Defer in loop (resource leak)
@@ -126,6 +165,41 @@ rami benchmark --source ~/workspace/rami-benchmarks --local
 - Magic numbers without constants
 - Deeply nested conditionals
 
+## CVE-Derived Patterns
+
+Real-world vulnerability patterns inspired by actual CVEs:
+
+| CVE | Pattern | Description |
+|-----|---------|-------------|
+| CVE-2023-34362 | MOVEit SQL injection | Request parameter in WHERE clause |
+| CVE-2014-6271 | Shellshock | User input in shell command |
+| CVE-2021-44228 | Log4Shell style | User input in log messages |
+| CVE-2024-3094 | XZ Utils | Unsafe archive extraction |
+| CVE-2024-22855 | Jackson-databind | Unsafe YAML deserialization |
+| CVE-2023-24488 | Citrix XSS | Reflected XSS via URL param |
+| Various | SSRF | Unvalidated URL requests |
+| Various | Path Traversal | File access via user path |
+| Various | Auth Bypass | Missing authentication checks |
+| Various | IDOR | Missing ownership verification |
+| Various | Mass Assignment | Unfiltered object assignment |
+| Various | TOCTOU | Time-of-check to time-of-use |
+| Various | Timing Attack | Non-constant time comparison |
+| Various | Open Redirect | Unvalidated redirect URL |
+| Various | Prototype Pollution | Unsafe object merge |
+
+## Multi-File Scenarios
+
+Context-dependent patterns that require understanding data flow across files:
+
+| Scenario | Files | Pattern |
+|----------|-------|---------|
+| Go SQL Injection | handler.go → database.go | Input validation → parameterized query |
+| Go Command Injection | handler.go → executor.go | User input → allowlist execution |
+| Python SQL Injection | views.py → models.py | Validation → repository query |
+| Python Path Traversal | views.py → validators.py | File request → path validation |
+| TypeScript SQL Injection | api.ts → service.ts | API validation → DB query |
+| TypeScript XSS | api.ts | Content rendering with sanitization |
+
 ## False Positive Tests
 
 Templates where `OriginalCode == DefectiveCode` test that Rami does NOT flag correct patterns:
@@ -144,3 +218,4 @@ Templates where `OriginalCode == DefectiveCode` test that Rami does NOT flag cor
 2. Add source files containing the **exact** `OriginalCode` patterns (trimmed lines must match)
 3. The benchmark tool will automatically detect and inject defects
 4. For false positive tests, include the "safe but suspicious" pattern
+5. For multi-file scenarios, ensure data flow is traceable across files
