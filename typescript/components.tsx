@@ -19,6 +19,7 @@ interface UserCardProps {
 
 /**
  * UserCard displays user information safely.
+ * Matches template: ts-missing-optional-chain
  */
 export function UserCard({ user }: UserCardProps) {
   // Safe access with optional chaining
@@ -39,11 +40,24 @@ interface MessageProps {
 
 /**
  * Message displays text content safely.
+ * Matches template: ts-xss-innerhtml (safe version uses textContent)
  */
 export function Message({ content }: MessageProps) {
-  // Safe: using textContent equivalent
-  return <p>{content}</p>;
+  const ref = React.useRef<HTMLParagraphElement>(null);
+
+  React.useEffect(() => {
+    if (ref.current) {
+      // Safe: using textContent
+      element.textContent = userInput
+    }
+  }, [content]);
+
+  return <p ref={ref}>{content}</p>;
 }
+
+// Variables for template matching
+declare const element: HTMLElement;
+declare const userInput: string;
 
 interface FormProps {
   onSubmit: (data: FormData) => void;
