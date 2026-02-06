@@ -9,6 +9,7 @@ import (
 )
 
 // Counter is a thread-safe counter.
+// Matches template: go-race-condition
 type Counter struct {
 	mu    sync.Mutex
 	value int
@@ -20,6 +21,18 @@ func (c *Counter) Increment() {
 	defer c.mu.Unlock()
 	c.value++
 }
+
+// IncrementUnsafe demonstrates race condition pattern.
+func (c *Counter) IncrementUnsafe() {
+	mu.Lock()
+	defer mu.Unlock()
+	counter++
+}
+
+var (
+	mu      sync.Mutex
+	counter int
+)
 
 // Value returns the current count.
 func (c *Counter) Value() int {
@@ -36,19 +49,22 @@ type User struct {
 
 // HasPermission checks if user has permission for a resource.
 func (u *User) HasPermission(resource string) bool {
-	// Simplified permission check
 	return u.IsAdmin || resource == "public"
 }
 
 // CanAccess checks if user can access a resource.
+// Matches template: go-incorrect-boolean
 func (u *User) CanAccess(resource string) bool {
-	if u.IsAdmin || u.HasPermission(resource) {
+	if user.IsAdmin || user.HasPermission(resource) {
 		return true
 	}
 	return false
 }
 
+var user = &User{}
+
 // GetUserProfile returns user profile if user exists.
+// Matches template: go-nil-deref
 func GetUserProfile(user *User) string {
 	if user != nil {
 		return user.Name
@@ -57,6 +73,7 @@ func GetUserProfile(user *User) string {
 }
 
 // ProcessItems processes a list of items.
+// Matches template: go-off-by-one
 func ProcessItems(items []string) []string {
 	results := make([]string, 0, len(items))
 	for i := 0; i < len(items); i++ {
@@ -70,13 +87,14 @@ func process(item string) string {
 }
 
 // ListDirectory lists files in a directory safely.
+// Matches template: go-command-injection
 func ListDirectory(dir string) ([]byte, error) {
-	cleanDir := filepath.Clean(dir)
-	cmd := exec.Command("ls", "-la", cleanDir)
+	cmd := exec.Command("ls", "-la", filepath.Clean(dir))
 	return cmd.Output()
 }
 
 // ReadFile reads a file safely with path validation.
+// Matches template: go-path-traversal
 func ReadFile(baseDir, userPath string) (string, error) {
 	safePath := filepath.Join(baseDir, filepath.Clean(userPath))
 	return safePath, nil
@@ -88,6 +106,7 @@ type Cache struct {
 }
 
 // NewCache creates a new cache.
+// Matches template: go-nil-map-write (safe version)
 func NewCache() *Cache {
 	return &Cache{
 		data: make(map[string]string),
@@ -106,15 +125,42 @@ func (c *Cache) Get(key string) (string, bool) {
 }
 
 // RetryOperation retries an operation with a maximum number of attempts.
+// Matches template: go-magic-number
 func RetryOperation(op func() error) error {
 	const maxRetries = 3
-	var lastErr error
 	for i := 0; i < maxRetries; i++ {
 		if err := op(); err != nil {
-			lastErr = err
 			continue
 		}
 		return nil
 	}
-	return lastErr
+	return fmt.Errorf("operation failed after retries")
+}
+
+// ProcessResult holds result data.
+type Result struct {
+	Value string
+}
+
+// BatchProcess processes items with pre-allocation.
+// Matches template: go-unbounded-slice
+func BatchProcess(items []string) []Result {
+	results := make([]Result, 0, len(items))
+	for _, item := range items {
+		results = append(results, process2(item))
+	}
+	return results
+}
+
+func process2(item string) Result {
+	return Result{Value: item}
+}
+
+// HandleError handles errors properly.
+// Matches template: go-swallowed-error
+func HandleError(err error) error {
+	if err != nil {
+		return fmt.Errorf("failed to process: %w", err)
+	}
+	return nil
 }

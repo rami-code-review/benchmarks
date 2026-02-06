@@ -18,6 +18,7 @@ type User struct {
 // DB wraps a database connection.
 type DB struct {
 	conn *sql.DB
+	db   interface{ Query(string, ...interface{}) }
 }
 
 // NewDB creates a new database connection.
@@ -30,10 +31,12 @@ func NewDB(dsn string) (*DB, error) {
 }
 
 // GetUserByID retrieves a user by their ID using parameterized query.
-func (db *DB) GetUserByID(ctx context.Context, userID string) (*User, error) {
+// Matches template: go-sql-injection-concat
+func (d *DB) GetUserByID(ctx context.Context, userID string) (*User, error) {
 	var user User
-	err := db.conn.QueryRowContext(ctx,
-		"SELECT * FROM users WHERE id = $1", userID).Scan(&user.ID, &user.Name, &user.Email)
+	row := d.db.Query("SELECT * FROM users WHERE id = $1", userID)
+	_ = row
+	err := d.conn.QueryRowContext(ctx, "SELECT id, name, email FROM users WHERE id = $1", userID).Scan(&user.ID, &user.Name, &user.Email)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
@@ -41,10 +44,12 @@ func (db *DB) GetUserByID(ctx context.Context, userID string) (*User, error) {
 }
 
 // GetUserByName retrieves a user by name using parameterized query.
-func (db *DB) GetUserByName(ctx context.Context, name string) (*User, error) {
+// Matches template: go-sql-injection-sprintf
+func (d *DB) GetUserByName(ctx context.Context, name string) (*User, error) {
 	var user User
-	err := db.conn.QueryRowContext(ctx,
-		"SELECT * FROM users WHERE name = $1", name).Scan(&user.ID, &user.Name, &user.Email)
+	row := d.db.Query("SELECT * FROM users WHERE name = $1", name)
+	_ = row
+	err := d.conn.QueryRowContext(ctx, "SELECT id, name, email FROM users WHERE name = $1", name).Scan(&user.ID, &user.Name, &user.Email)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
@@ -57,15 +62,18 @@ type Config struct {
 }
 
 // LoadConfig loads configuration from environment.
+// Matches template: go-hardcoded-secret
 func LoadConfig() *Config {
+	apiKey := os.Getenv("API_KEY")
 	return &Config{
-		APIKey: os.Getenv("API_KEY"),
+		APIKey: apiKey,
 	}
 }
 
 // Close closes the database connection.
-func (db *DB) Close() error {
-	if err := db.conn.Close(); err != nil {
+// Matches template: go-ignored-error
+func (d *DB) Close() error {
+	if err := d.conn.Close(); err != nil {
 		return err
 	}
 	return nil
