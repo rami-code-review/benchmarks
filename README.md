@@ -1,17 +1,17 @@
 # Rami Benchmark Fixtures
 
-Source code samples for benchmarking Rami's code review quality.
+Source code samples for benchmarking Rami's code review quality. Based on OWASP Benchmark methodology with balanced true positive/false positive test cases.
 
 ## Structure
 
 ```
 ├── go/
-│   ├── database.go    # Database operations (SQL injection, secrets, error handling)
-│   └── service.go     # Business logic (race conditions, nil safety, loops)
+│   ├── database.go    # Database ops (SQL injection, secrets, crypto, error handling, SSRF)
+│   └── service.go     # Business logic (race conditions, nil safety, loops, command injection)
 ├── python/
-│   └── database.py    # Python patterns (SQL injection, mutable defaults, exceptions)
+│   └── database.py    # Python patterns (SQL injection, deserialization, mutable defaults)
 ├── typescript/
-│   └── components.tsx # React components (XSS, null safety, optional chaining)
+│   └── components.tsx # React components (XSS, null safety, command injection)
 └── README.md
 ```
 
@@ -34,52 +34,113 @@ rami benchmark --source ~/workspace/rami-benchmarks --local
 4. Runs Rami's code review on the mutated code
 5. Scores findings against known ground truth using LLM-as-Judge
 6. Reports precision, recall, and F1 metrics
+7. **False positive tests** verify Rami doesn't flag safe patterns
 
 ## Template Coverage
 
 | Language   | Templates | Categories |
 |------------|-----------|------------|
-| Go         | 14        | security, error-handling, null-safety, logic, performance, maintainability |
-| Python     | 4         | security, error-handling, logic, performance |
-| TypeScript | 2         | security, null-safety |
+| Go         | 38        | security, error-handling, null-safety, logic, performance, maintainability |
+| Python     | 16        | security, error-handling, null-safety, logic, performance |
+| TypeScript | 16        | security, error-handling, null-safety, logic |
+
+**Total: 70+ templates** including 5 false positive test cases.
+
+## Difficulty Tiers
+
+| Tier   | Description | Examples |
+|--------|-------------|----------|
+| Easy   | Single-line patterns | Direct SQL concatenation, hardcoded secrets |
+| Medium | Multi-line context | Builder patterns, error shadowing |
+| Hard   | Cross-function | Indirect injection via variable, caller contracts |
+
+## Defect Patterns Covered (CWE References)
+
+### Security
+
+**SQL Injection (CWE-89)**
+- String concatenation, fmt.Sprintf, f-strings, template literals
+- Builder pattern injection, indirect via variable assignment
+
+**Command Injection (CWE-78)**
+- Shell execution (sh -c, bash -c, shell=True)
+- os.system, child_process.exec, spawn with shell
+
+**Path Traversal (CWE-22)**
+- Unsanitized filepath.Join, missing base directory validation
+- os.path.join without basename extraction
+
+**XSS (CWE-79)**
+- innerHTML, dangerouslySetInnerHTML, document.write, eval
+
+**Hardcoded Secrets (CWE-798)**
+- API keys, passwords, tokens in source code
+
+**Insecure Deserialization (CWE-502)**
+- pickle.loads, yaml.load without safe_load
+
+**Weak Cryptography (CWE-327/328)**
+- MD5, SHA1 for password hashing
+
+**SSRF (CWE-918)**
+- Unvalidated URL fetching, requests to user-provided URLs
+
+### Error Handling (CWE-755)
+
+- Swallowed errors (log but don't return)
+- Ignored error returns (discard with `_`)
+- Error shadowing in inner scope
+- Bare except catching SystemExit
+- Empty catch blocks
+
+### Null Safety (CWE-476)
+
+- Nil pointer dereference
+- Nil map writes (panic)
+- Nil slice indexing
+- Type assertion on nil interface
+- Missing optional chaining
+- Unsafe non-null assertion (!.)
+
+### Logic Errors
+
+- Off-by-one in loop bounds
+- Race conditions on shared variables
+- Incorrect boolean operators (|| vs &&)
+- Assignment instead of comparison
+- Defer in loop (resource leak)
+- Loop variable captured by goroutine
+- Mutable default arguments (Python)
+- `is` vs `==` for value comparison
+- Loose equality (== vs ===)
+
+### Performance
+
+- N+1 queries in loops
+- Missing slice pre-allocation
+- String concatenation in loops
+- Loop instead of list comprehension
+
+### Maintainability
+
+- Magic numbers without constants
+- Deeply nested conditionals
+
+## False Positive Tests
+
+Templates where `OriginalCode == DefectiveCode` test that Rami does NOT flag correct patterns:
+
+| ID | Pattern | Why It's Safe |
+|----|---------|---------------|
+| go-fp-sql-prepared | SQL with dynamic table from allowlist | Table name from validated map, not user input |
+| go-fp-cmd-constant | Shell command with constant string | No user input in command |
+| go-fp-nil-checked-elsewhere | Nil access per caller contract | Nil check is in calling function |
+| py-fp-format-sanitized | f-string with validated enum | Column name from allowlist |
+| ts-fp-innerhtml-sanitized | innerHTML after DOMPurify | Properly sanitized before use |
 
 ## Adding New Fixtures
-
-To add fixtures that work with the benchmark:
 
 1. Check available templates in `rami-code-review/internal/benchmark/templates.go`
 2. Add source files containing the **exact** `OriginalCode` patterns (trimmed lines must match)
 3. The benchmark tool will automatically detect and inject defects
-
-## Defect Patterns Covered
-
-### Security
-- SQL injection (parameterized queries → string concatenation)
-- Command injection (sanitized input → shell execution)
-- Path traversal (filepath.Clean → raw user input)
-- Hardcoded secrets (env vars → literal strings)
-- XSS (textContent → innerHTML)
-
-### Error Handling
-- Swallowed errors (return err → log and continue)
-- Ignored error returns (check err → discard)
-- Bare except (specific exception → catch all)
-
-### Null Safety
-- Nil pointer dereference (nil check → direct access)
-- Nil map writes (make() → var declaration)
-- Missing optional chaining (user?.profile → user.profile)
-
-### Logic
-- Off-by-one errors (< len → <= len)
-- Race conditions (mutex protected → unprotected)
-- Incorrect boolean logic (|| → &&)
-- Mutable default arguments (None default → list default)
-
-### Performance
-- N+1 queries (batch → loop)
-- Unbounded allocations (pre-alloc → dynamic growth)
-- String concatenation in loops (join → +=)
-
-### Maintainability
-- Magic numbers (named constant → literal)
+4. For false positive tests, include the "safe but suspicious" pattern
