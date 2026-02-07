@@ -1,6 +1,8 @@
-// Package cve_patterns demonstrates vulnerability patterns derived from real CVEs.
+//go:build cve_patterns
+
+// Package benchmarks demonstrates vulnerability patterns derived from real CVEs.
 // These patterns test detection of production-grade security issues.
-package cve_patterns
+package benchmarks
 
 import (
 	"crypto/subtle"
