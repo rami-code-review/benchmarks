@@ -1,5 +1,7 @@
-// Package database provides database operations for benchmark testing.
-package database
+//go:build database
+
+// Package benchmarks provides database operations for benchmark testing.
+package benchmarks
 
 import (
 	"crypto/sha256"

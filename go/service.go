@@ -1,5 +1,7 @@
-// Package service provides business logic for benchmark testing.
-package service
+//go:build service
+
+// Package benchmarks provides business logic for benchmark testing.
+package benchmarks
 
 import (
 	"fmt"

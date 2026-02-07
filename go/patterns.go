@@ -1,6 +1,8 @@
-// Package patterns contains exact template patterns for benchmark testing.
+//go:build patterns
+
+// Package benchmarks contains exact template patterns for benchmark testing.
 // Each function contains the EXACT OriginalCode from templates.go.
-package patterns
+package benchmarks
 
 import (
 	"crypto/sha256"
@@ -8,6 +10,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -236,7 +239,7 @@ func process() {}
 func LogicDeferLoopMedium() {
 	for _, file := range files {
 		f, _ := os.Open(file)
-		data, _ := os.ReadAll(f)
+		data, _ := io.ReadAll(f)
 		f.Close()
 		processData(data)
 	}

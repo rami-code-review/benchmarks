@@ -5,28 +5,33 @@ Source code samples for benchmarking Rami's code review quality. Based on OWASP 
 ## Structure
 
 ```
-├── go/
-│   ├── database.go       # Database ops (SQL injection, secrets, crypto, error handling)
-│   ├── service.go        # Business logic (race conditions, nil safety, loops)
-│   ├── cve_patterns.go   # CVE-derived vulnerability patterns
-│   └── multifile/        # Multi-file context-dependent scenarios
-│       ├── handler.go
-│       ├── database.go
-│       └── executor.go
-├── python/
-│   ├── database.py       # Python patterns (SQL injection, deserialization)
-│   ├── cve_patterns.py   # CVE-derived vulnerability patterns
-│   └── multifile/        # Multi-file context-dependent scenarios
-│       ├── views.py
-│       ├── models.py
-│       └── validators.py
-├── typescript/
-│   ├── components.tsx    # React components (XSS, null safety)
-│   ├── cve_patterns.ts   # CVE-derived vulnerability patterns
-│   └── multifile/        # Multi-file context-dependent scenarios
-│       ├── api.ts
-│       ├── service.ts
-│       └── validators.ts
+├── go/                    # 46 templates
+│   ├── patterns.go        # Main pattern fixtures
+│   ├── database.go        # Database ops (SQL injection, secrets, crypto)
+│   ├── service.go         # Business logic (race conditions, nil safety)
+│   ├── cve_patterns.go    # CVE-derived vulnerability patterns
+│   └── multifile/         # Multi-file context-dependent scenarios
+├── python/                # 58 templates
+│   ├── patterns.py        # Main patterns + Django/Flask/FastAPI
+│   ├── database.py        # Database patterns
+│   ├── cve_patterns.py    # CVE-derived patterns
+│   └── multifile/         # Multi-file scenarios
+├── typescript/            # 43 templates
+│   ├── patterns.ts        # Main patterns + React/Next.js
+│   ├── components.tsx     # React components (XSS, null safety)
+│   ├── cve_patterns.ts    # CVE-derived patterns
+│   └── multifile/         # Multi-file scenarios
+├── java/                  # 59 templates
+│   ├── patterns.java      # Main patterns (Spring, JDBC, JPA)
+│   └── cve_patterns.java  # Log4Shell, Struts, Spring4Shell
+├── javascript/            # 37 templates
+│   └── patterns.js        # Prototype pollution, eval, DOM XSS, NoSQL
+├── csharp/                # 37 templates
+│   └── patterns.cs        # ASP.NET, Entity Framework, SqlCommand
+├── rust/                  # 31 templates
+│   └── patterns.rs        # Unsafe blocks, memory safety, concurrency
+├── expectedresults.csv    # OWASP-style ground truth (311 entries)
+├── LICENSE                # Apache-2.0
 └── README.md
 ```
 
@@ -55,14 +60,18 @@ rami benchmark --source ~/workspace/rami-benchmarks --local
 
 | Language   | Templates | Categories |
 |------------|-----------|------------|
-| Go         | 50+       | security, error-handling, null-safety, logic, performance, CVE patterns |
-| Python     | 22+       | security, error-handling, null-safety, logic, CVE patterns |
-| TypeScript | 21+       | security, error-handling, null-safety, logic, CVE patterns |
+| Java       | 59        | SQL injection, command injection, deserialization, XSS, Log4Shell, Spring4Shell |
+| Python     | 58        | Django/Flask/FastAPI, SSTI, pickle, asyncio, type safety |
+| Go         | 46        | security, error-handling, null-safety, logic, performance, CVE patterns |
+| TypeScript | 43        | React/Next.js, Prisma/TypeORM, Express middleware, Zod validation |
+| JavaScript | 37        | prototype pollution, eval injection, DOM XSS, NoSQL injection |
+| C#         | 37        | ASP.NET, Entity Framework, BinaryFormatter, SqlCommand |
+| Rust       | 31        | unsafe blocks, memory safety, concurrency, FFI |
 
-**Total: 93+ templates** including:
-- 5 false positive test cases
-- 8 multi-file context-dependent scenarios
-- 15 CVE-derived real-world patterns
+**Total: 311 templates** including:
+- 21 false positive test cases (safe patterns that shouldn't trigger)
+- 10+ multi-file context-dependent scenarios
+- 25+ CVE-derived real-world patterns
 
 ## Difficulty Tiers
 
@@ -212,6 +221,20 @@ Templates where `OriginalCode == DefectiveCode` test that Rami does NOT flag cor
 | py-fp-format-sanitized | f-string with validated enum | Column name from allowlist |
 | ts-fp-innerhtml-sanitized | innerHTML after DOMPurify | Properly sanitized before use |
 
+## Expected Results (Ground Truth)
+
+The `expectedresults.csv` file contains OWASP-style ground truth for all templates:
+
+```csv
+filename,test_id,cwe,category,expected,difficulty,language
+go/patterns.go,go-sqli-concat-easy,CWE-89,sql-injection,FN,easy,go
+java/patterns.java,java-log4shell-lookup,CWE-917,logging,TP,hard,java
+```
+
+- **expected=TP** (True Positive): Rami should detect this vulnerability
+- **expected=FN** (False Negative): Defect injected, Rami should find it
+- **expected=FP** (False Positive): Safe code, Rami should NOT flag it
+
 ## Adding New Fixtures
 
 1. Check available templates in `rami-code-review/internal/benchmark/templates.go`
@@ -219,3 +242,8 @@ Templates where `OriginalCode == DefectiveCode` test that Rami does NOT flag cor
 3. The benchmark tool will automatically detect and inject defects
 4. For false positive tests, include the "safe but suspicious" pattern
 5. For multi-file scenarios, ensure data flow is traceable across files
+6. Update `expectedresults.csv` with the new test case ground truth
+
+## License
+
+Apache-2.0. See [LICENSE](LICENSE) for details.
