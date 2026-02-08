@@ -5,70 +5,60 @@ Source code samples for benchmarking Rami's code review quality. Based on OWASP 
 ## Structure
 
 ```
-├── go/                    # 46 templates
+├── go/                    # 61 templates
 │   ├── patterns.go        # Main pattern fixtures
 │   ├── database.go        # Database ops (SQL injection, secrets, crypto)
 │   ├── service.go         # Business logic (race conditions, nil safety)
 │   ├── cve_patterns.go    # CVE-derived vulnerability patterns
+│   ├── design_patterns.go # LLM-advantage: architecture/design issues
+│   ├── async_patterns.go  # LLM-advantage: concurrency patterns
 │   └── multifile/         # Multi-file context-dependent scenarios
-├── python/                # 58 templates
+├── python/                # 71 templates
 │   ├── patterns.py        # Main patterns + Django/Flask/FastAPI
 │   ├── database.py        # Database patterns
 │   ├── cve_patterns.py    # CVE-derived patterns
+│   ├── test_quality.py    # LLM-advantage: test code quality issues
 │   └── multifile/         # Multi-file scenarios
-├── typescript/            # 43 templates
+├── typescript/            # 65 templates
 │   ├── patterns.ts        # Main patterns + React/Next.js
 │   ├── components.tsx     # React components (XSS, null safety)
 │   ├── cve_patterns.ts    # CVE-derived patterns
+│   ├── framework_patterns.ts # LLM-advantage: React/Express misuse
 │   └── multifile/         # Multi-file scenarios
-├── java/                  # 59 templates
+├── java/                  # 61 templates
 │   ├── patterns.java      # Main patterns (Spring, JDBC, JPA)
 │   └── cve_patterns.java  # Log4Shell, Struts, Spring4Shell
-├── javascript/            # 37 templates
+├── javascript/            # 39 templates
 │   └── patterns.js        # Prototype pollution, eval, DOM XSS, NoSQL
-├── csharp/                # 37 templates
+├── csharp/                # 40 templates
 │   └── patterns.cs        # ASP.NET, Entity Framework, SqlCommand
-├── rust/                  # 31 templates
+├── rust/                  # 33 templates
 │   └── patterns.rs        # Unsafe blocks, memory safety, concurrency
-├── expectedresults.csv    # OWASP-style ground truth (311 entries)
+├── expectedresults.csv    # OWASP-style ground truth (346 entries)
 ├── LICENSE                # Apache-2.0
 └── README.md
 ```
 
-## Usage
+## Overview
 
 These files contain clean, safe code patterns that match Rami's defect injection templates.
-The benchmark tool (`rami benchmark`) injects known vulnerabilities and bugs into these
-files, then measures how well Rami detects them.
-
-```bash
-# Run benchmark against these fixtures
-rami benchmark --source ~/workspace/rami-benchmarks --local
-```
-
-## How It Works
-
-1. The benchmark tool reads source files from this repository
-2. Finds patterns matching `OriginalCode` in `internal/benchmark/templates.go`
-3. Replaces them with `DefectiveCode` (vulnerable/buggy versions)
-4. Runs Rami's code review on the mutated code
-5. Scores findings against known ground truth using LLM-as-Judge
-6. Reports precision, recall, and F1 metrics
-7. **False positive tests** verify Rami doesn't flag safe patterns
+The benchmark system injects known vulnerabilities and bugs into these files, then measures
+how well Rami detects them.
 
 ## Template Coverage
 
 | Language   | Templates | Categories |
 |------------|-----------|------------|
-| Java       | 59        | SQL injection, command injection, deserialization, XSS, Log4Shell, Spring4Shell |
-| Python     | 58        | Django/Flask/FastAPI, SSTI, pickle, asyncio, type safety |
-| Go         | 46        | security, error-handling, null-safety, logic, performance, CVE patterns |
-| TypeScript | 43        | React/Next.js, Prisma/TypeORM, Express middleware, Zod validation |
-| JavaScript | 37        | prototype pollution, eval injection, DOM XSS, NoSQL injection |
-| C#         | 37        | ASP.NET, Entity Framework, BinaryFormatter, SqlCommand |
-| Rust       | 31        | unsafe blocks, memory safety, concurrency, FFI |
+| Python     | 71        | Django/Flask/FastAPI, SSTI, pickle, asyncio, test quality |
+| TypeScript | 65        | React/Next.js, Prisma/TypeORM, Express middleware, framework misuse |
+| Java       | 61        | SQL injection, command injection, deserialization, XSS, Log4Shell, Spring4Shell |
+| Go         | 61        | security, error-handling, null-safety, logic, design patterns, async |
+| C#         | 40        | ASP.NET, Entity Framework, BinaryFormatter, SqlCommand |
+| JavaScript | 39        | prototype pollution, eval injection, DOM XSS, NoSQL injection |
+| Rust       | 33        | unsafe blocks, memory safety, concurrency, FFI |
 
-**Total: 311 templates** including:
+**Total: 370 templates** including:
+- 37 LLM-advantage templates (design, test quality, framework, async)
 - 21 false positive test cases (safe patterns that shouldn't trigger)
 - 10+ multi-file context-dependent scenarios
 - 25+ CVE-derived real-world patterns
@@ -81,6 +71,17 @@ rami benchmark --source ~/workspace/rami-benchmarks --local
 | Medium | Multi-line context | Builder patterns, error shadowing |
 | Hard   | Cross-function | Indirect injection via variable, caller contracts |
 | Expert | Multi-file/CVE | Data flow across files, real-world vulnerability patterns |
+
+## LLM-Advantage Categories
+
+These categories differentiate LLM code review from traditional SAST tools (which score 0-10% on these patterns):
+
+| Category | SAST Score | Description | Examples |
+|----------|------------|-------------|----------|
+| Design | ~0% | Architecture/design issues | God objects, circular dependencies, wrong patterns |
+| Test Quality | ~0% | Test code issues | No assertions, mocking SUT, flaky tests, misleading names |
+| Framework | ~10% | Framework misuse | React hooks violations, Express middleware errors, Django N+1 |
+| Async | ~5% | Async/concurrency reasoning | Goroutine leaks, race conditions, fire-and-forget promises |
 
 ## Defect Patterns Covered (CWE References)
 
