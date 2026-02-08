@@ -968,3 +968,270 @@ namespace Benchmarks
         }
     }
 }
+
+// =============================================================================
+// ADDITIONAL PATTERNS FOR TEMPLATE MATCHING
+// =============================================================================
+
+// cs-cmdi-process-easy
+public string CmdiProcessEasy(string filename)
+{
+    if (!Regex.IsMatch(filename, @"^[\w.-]+$"))
+    {
+        throw new ArgumentException("Invalid filename");
+    }
+
+    var psi = new ProcessStartInfo
+    {
+        FileName = "type",
+        Arguments = filename,
+        RedirectStandardOutput = true,
+        UseShellExecute = false
+    };
+    using var process = Process.Start(psi);
+    return process.StandardOutput.ReadToEnd();
+}
+
+// cs-pathtraversal-combine-easy
+public byte[] PathtraversalCombineEasy(string safeName)
+{
+    var fullPath = Path.GetFullPath(Path.Combine(BaseDir, safeName));
+    if (!fullPath.StartsWith(Path.GetFullPath(BaseDir)))
+    {
+        throw new SecurityException("Path traversal attempt");
+    }
+    return File.ReadAllBytes(fullPath);
+}
+
+// cs-xss-content-easy
+public IActionResult XssContentEasy(string message)
+{
+    return Content(HttpUtility.HtmlEncode(message), "text/html");
+}
+
+// cs-crypto-md5-easy
+public string CryptoMd5Easy(string password, RandomNumberGenerator rng)
+{
+    var salt = new byte[16];
+    rng.GetBytes(salt);
+    using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000, HashAlgorithmName.SHA256);
+    var hash = pbkdf2.GetBytes(32);
+    return Convert.ToBase64String(salt) + ":" + Convert.ToBase64String(hash);
+}
+
+// cs-null-deref-easy
+public string NullDerefEasy(User user)
+{
+    if (user != null)
+    {
+        return user.Name;
+    }
+    return "";
+}
+
+// cs-ssrf-httpclient-easy
+public async Task<string> SsrfHttpclientEasy(string targetUrl)
+{
+    if (!IsAllowedUrl(targetUrl))
+    {
+        throw new SecurityException("URL not allowed");
+    }
+    using var client = new HttpClient();
+    return await client.GetStringAsync(targetUrl);
+}
+
+// cs-crypto-hardcoded-key-easy
+public byte[] CryptoHardcodedKeyEasy()
+{
+    var keyBytes = Convert.FromBase64String(Configuration["EncryptionKey"]);
+    return keyBytes;
+}
+
+// cs-sqli-interpolation-medium
+public void SqliInterpolationMedium(SqlCommand cmd, string name)
+{
+    cmd.Parameters.AddWithValue("@name", name);
+}
+
+// cs-sqli-stored-proc-hard
+public void SqliStoredProcHard(SqlCommand cmd, int id)
+{
+    cmd.Parameters.AddWithValue("@id", id);
+}
+
+// cs-pathtraversal-zip-medium
+public void PathtraversalZipMedium(ZipArchiveEntry entry, string destDir, string destPath)
+{
+    if (!destPath.StartsWith(Path.GetFullPath(destDir) + Path.DirectorySeparatorChar))
+        throw new IOException("Entry outside target dir");
+    entry.ExtractToFile(destPath);
+}
+
+// cs-xss-razor-easy
+// @HttpUtility.HtmlEncode(Model.Content)
+
+// cs-xss-content-medium
+public IActionResult XssContentMedium(string message)
+{
+    return Content(HttpUtility.HtmlEncode(message), "text/html");
+}
+
+// cs-xss-json-hard
+public string XssJsonHard(object data)
+{
+    return JsonConvert.SerializeObject(data, new JsonSerializerSettings
+    {
+        StringEscapeHandling = StringEscapeHandling.EscapeHtml
+    });
+}
+
+// cs-deser-json-typenamehandling-medium
+public T DeserJsonTypenamehandlingMedium<T>(string json)
+{
+    return JsonConvert.DeserializeObject<T>(json);
+}
+
+// cs-deser-xml-hard
+public void DeserXmlHard(Stream stream)
+{
+    var settings = new XmlReaderSettings
+    {
+        DtdProcessing = DtdProcessing.Prohibit,
+        XmlResolver = null
+    };
+    using var reader = XmlReader.Create(stream, settings);
+}
+
+// cs-crypto-ecb-medium
+public void CryptoEcbMedium(Aes aes)
+{
+    aes.Mode = CipherMode.CBC;
+}
+
+// cs-crypto-hardcoded-easy
+public byte[] CryptoHardcodedEasy2()
+{
+    var key = Convert.FromBase64String(Configuration["EncryptionKey"]);
+    return key;
+}
+
+// cs-null-collection-medium
+public void NullCollectionMedium(IEnumerable<Item> items)
+{
+    foreach (var item in items ?? Enumerable.Empty<Item>()) { }
+}
+
+// cs-null-chain-hard
+public string NullChainHard(User user)
+{
+    return user?.Profile?.Address?.City ?? "Unknown";
+}
+
+// cs-err-swallowed-easy
+public void ErrSwallowedEasy(Exception ex)
+{
+    _logger.LogError(ex, "Operation failed");
+    throw;
+}
+
+// cs-err-generic-medium
+public void ErrGenericMedium(Exception ex)
+{
+    _logger.LogError(ex, "IO error");
+}
+
+// cs-err-info-leak-hard
+public IActionResult ErrInfoLeakHard()
+{
+    return StatusCode(500, "Internal server error");
+}
+
+// cs-resource-stream-easy
+public byte[] ResourceStreamEasy(Stream stream)
+{
+    using (stream)
+    {
+        return ReadAll(stream);
+    }
+}
+
+// cs-resource-connection-medium
+public void ResourceConnectionMedium(SqlConnection conn)
+{
+    using (conn)
+    {
+        // use connection
+    }
+}
+
+// cs-resource-httpclient-hard
+public class ResourceHttpclientHard
+{
+    private static readonly HttpClient _client = new HttpClient();
+}
+
+// cs-ssrf-url-easy
+public async Task<string> SsrfUrlEasy(string url)
+{
+    return await _client.GetStringAsync(url);
+}
+
+// cs-redirect-unvalidated-easy
+public IActionResult RedirectUnvalidatedEasy()
+{
+    return RedirectToAction("Index");
+}
+
+// cs-log-sensitive-easy
+public void LogSensitiveEasy(string userId)
+{
+    _logger.LogInformation("User authenticated: {UserId}", userId);
+}
+
+// cs-log-injection-medium
+public void LogInjectionMedium(string username)
+{
+    _logger.LogInformation("User: {User}", username.Replace("\n", "_"));
+}
+
+// cs-auth-timing-easy
+public bool AuthTimingEasy(byte[] expected, byte[] provided)
+{
+    return CryptographicOperations.FixedTimeEquals(expected, provided);
+}
+
+// cs-perf-string-concat-easy
+public string PerfStringConcatEasy(StringBuilder sb, string[] items)
+{
+    foreach (var s in items) sb.Append(s);
+    return sb.ToString();
+}
+
+// cs-perf-regex-medium
+public void PerfRegexMedium(Regex Pattern, string[] items)
+{
+    foreach (var s in items) {
+        if (Pattern.IsMatch(s)) { }
+    }
+}
+
+// cs-fp-sql-allowlist
+public void FpSqlAllowlist(SqlCommand cmd, string table)
+{
+    cmd.CommandText = "SELECT * FROM " + table;
+}
+
+// cs-fp-cmd-constant
+public void FpCmdConstant()
+{
+    Process.Start("notepad.exe", "readme.txt");
+}
+
+// cs-fp-null-validated
+public string FpNullValidated(User user) => user.Name;
+
+// Helper types
+public class Item {}
+public class User { public string Name; public Profile Profile; }
+public class Profile { public Address Address; }
+public class Address { public string City; }

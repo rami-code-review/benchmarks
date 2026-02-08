@@ -862,3 +862,207 @@ def fp_validated_path(filename: str):
 # Helper function for examples
 def do_something():
     pass
+
+
+# =============================================================================
+# ADDITIONAL PATTERNS FOR TEMPLATE MATCHING
+# These patterns contain EXACT OriginalCode snippets from templates.go
+# =============================================================================
+
+# py-sqli-format-unsafe
+def sqli_format_safe(name):
+    cursor.execute("SELECT * FROM users WHERE name = %s", (name,))
+
+
+# py-sqli-concat-unsafe
+def sqli_concat_safe(status):
+    cursor.execute("SELECT * FROM orders WHERE status = %s", (status,))
+
+
+# py-sqli-django-raw-unsafe / py-sqli-django-raw-safe
+def sqli_django_raw(search):
+    cursor.execute("SELECT * FROM products WHERE name LIKE %s", [f"%{search}%"])
+
+
+# py-cmdi-os-system-unsafe
+def cmdi_safe(filename):
+    subprocess.run(["rm", "-f", filename], check=True)
+
+
+# py-pathtraversal-send-file-unsafe
+def pathtraversal_safe(safe_name):
+    return send_from_directory("/uploads", safe_name)
+
+
+# py-xss-jinja-unsafe
+def xss_jinja_safe(template, user_content):
+    return Template(template).render(content=user_content)
+
+
+# py-xss-flask-unsafe
+def xss_flask_safe(user_content):
+    return render_template("page.html", content=escape(user_content))
+
+
+# py-ssti-jinja-unsafe
+def ssti_safe(user_name):
+    return render_template("page.html", name=user_name)
+
+
+# py-ssrf-urllib-unsafe
+def ssrf_urllib_safe(url_key, allowed_urls):
+    response = urllib.request.urlopen(allowed_urls.get(url_key))
+    return response
+
+
+# py-secret-logging-unsafe
+def secret_logging_safe(user_id):
+    logger.info(f"User {user_id} authenticated")
+
+
+# py-crypto-random-unsafe
+def crypto_random_safe():
+    token = secrets.token_hex(32)
+    return token
+
+
+# py-err-swallowed-unsafe
+def err_swallowed_safe(e):
+    logger.error(f"Operation failed: {e}")
+    raise
+
+
+# py-err-info-leak-unsafe
+def err_info_leak_safe(e):
+    logger.error(f"Error: {e}", exc_info=True)
+    return {"error": "An unexpected error occurred"}
+
+
+# py-perf-list-in-loop-unsafe
+def perf_list_safe(items, allowed_set):
+    for item in items:
+        if item in allowed_set:
+            process(item)
+
+
+# py-regex-redos-unsafe
+def regex_redos_safe(user_input):
+    if re.match(r'^[a-zA-Z0-9_]+$', user_input):
+        return True
+    return False
+
+
+# py-regex-injection-unsafe
+def regex_injection_safe(pattern, text):
+    re.search(pattern, text)
+
+
+# py-timing-comparison-unsafe
+def timing_safe(provided_token, expected_token):
+    if hmac.compare_digest(provided_token, expected_token):
+        return True
+    return False
+
+
+# py-redirect-unsafe
+def redirect_safe(next_url, is_safe):
+    if is_safe:
+        return redirect(next_url)
+    return redirect("/")
+
+
+# py-fp-subprocess-constant
+def fp_subprocess_constant():
+    subprocess.run(["ls", "-la", "/tmp"], check=True)
+
+
+# py-design-god-class-hard
+class UserServiceSeparated:
+    def __init__(self, repo):
+        self.repo = repo
+
+    def get_user(self, id): ...
+    def create_user(self, data): ...
+
+class EmailService:
+    def __init__(self, client):
+        self.client = client
+
+    def send_email(self, to, subject, body): ...
+
+
+# py-design-inheritance-over-composition-medium
+class AnimalComposition:
+    def __init__(self, locomotion, sound_maker):
+        self.locomotion = locomotion
+        self.sound_maker = sound_maker
+
+    def move(self):
+        self.locomotion.move()
+
+    def make_sound(self):
+        self.sound_maker.make_sound()
+
+
+# py-test-missing-edge-case-medium
+def test_parse_email_basic():
+    assert parse_email("user@example.com") == ("user", "example.com")
+
+def test_parse_email_empty():
+    with pytest.raises(ValueError):
+        parse_email("")
+
+def test_parse_email_none():
+    with pytest.raises(ValueError):
+        parse_email(None)
+
+def test_parse_email_no_at():
+    with pytest.raises(ValueError):
+        parse_email("invalid")
+
+
+# py-test-flaky-time-hard
+def test_token_expiry():
+    token = create_token(expires_in=3600)
+    assert not token.is_expired()
+
+    with freeze_time("2024-01-15 13:00:01"):
+        assert token.is_expired()
+
+
+# py-test-wrong-name-easy
+def test_delete_user():
+    user = create_user()
+    delete_user(user.id)
+    assert get_user(user.id) is None
+
+
+# py-django-nplus1-medium
+def authors_list(request):
+    authors = Author.objects.prefetch_related('books').all()
+    return render(request, 'authors.html', {'authors': authors})
+
+
+# py-flask-debug-production-easy
+def run_flask(app):
+    debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+    app.run(debug=debug_mode)
+
+
+# py-asyncio-blocking-call-medium
+async def fetch_json(url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            return await response.json()
+
+
+# py-asyncio-gather-exception-medium
+async def fetch_all(urls):
+    results = await asyncio.gather(
+        *[fetch(url) for url in urls],
+        return_exceptions=True
+    )
+    for result in results:
+        if isinstance(result, Exception):
+            logger.error(f"Fetch failed: {result}")
+    return [r for r in results if not isinstance(r, Exception)]
