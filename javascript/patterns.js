@@ -751,3 +751,229 @@ module.exports = {
     updateListSafe,
     buildStringSafe
 };
+
+// =============================================================================
+// ADDITIONAL PATTERNS FOR TEMPLATE MATCHING
+// =============================================================================
+
+// js-xss-innerhtml-easy
+function xssInnerhtmlEasy() {
+  container.textContent = message;
+}
+
+// js-xss-documentwrite-easy
+function xssDocumentwriteEasy() {
+  container.textContent = content;
+  document.body.appendChild(container);
+}
+
+// js-nosql-mongo-query-easy
+function nosqlMongoQueryEasy(username, password) {
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    throw new Error('Invalid input types');
+  }
+  return db.collection('users').findOne({
+    username: username,
+    password: password
+  });
+}
+
+// js-cmdi-exec-easy
+function cmdiExecEasy(filename, callback) {
+  // Validate filename
+  if (!/^[\w.-]+$/.test(filename)) {
+    return callback(new Error('Invalid filename'));
+  }
+  execFile('cat', [filename], callback);
+}
+
+// js-pathtraversal-join-easy
+function pathtraversalJoinEasy(userPath) {
+  const safePath = path.join(BASE_DIR, path.basename(userPath));
+  const resolved = path.resolve(safePath);
+  if (!resolved.startsWith(path.resolve(BASE_DIR))) {
+    throw new Error('Path traversal attempt');
+  }
+  return fs.readFileSync(resolved);
+}
+
+// js-err-callback-ignored-easy
+function errCallbackIgnoredEasy(filename, callback) {
+  fs.readFile(filename, (err, data) => {
+    if (err) {
+      logger.error('Failed to read file', err);
+      return callback(err);
+    }
+    callback(null, data);
+  });
+}
+
+// js-err-empty-catch-easy
+function errEmptyCatchEasy() {
+  try {
+    riskyOperation();
+  } catch (error) {
+    logger.error('Operation failed', error);
+    throw error;
+  }
+}
+
+// js-prototype-pollution-assign-medium
+function prototypePollutionAssignMedium(result, source, allowedKeys) {
+  for (const key of Object.keys(source)) {
+    if (allowedKeys.includes(key)) {
+      result[key] = source[key];
+    }
+  }
+}
+
+// js-prototype-pollution-path-hard
+function prototypePollutionPathHard(obj, path, value) {
+  if (path.includes('__proto__') || path.includes('constructor')) {
+    throw new Error('Invalid path');
+  }
+  // ... set value
+}
+
+// js-eval-template-hard
+function evalTemplateHard(op, a, b, safeHandlers) {
+  return safeHandlers[op](a, b);
+}
+
+// js-eval-settimeout-medium
+function evalSettimeoutMedium(data) {
+  setTimeout(() => handleAction(data), 1000);
+}
+
+// js-xss-href-medium
+function xssHrefMedium(url) {
+  link.href = sanitizeUrl(url);
+}
+
+// js-xss-jquery-hard
+function xssJqueryHard(userInput) {
+  $(element).text(userInput);
+}
+
+// js-xss-location-medium
+function xssLocationMedium(param) {
+  document.getElementById('search').textContent = param;
+}
+
+// js-nosql-where-medium
+function nosqlWhereMedium(username) {
+  db.collection('users').find({ username: username });
+}
+
+// js-nosql-aggregation-hard
+function nosqlAggregationHard(userId) {
+  db.collection('orders').aggregate([
+    { $match: { userId: userId } }
+  ]);
+}
+
+// js-cmdi-spawn-medium
+function cmdiSpawnMedium(pkg) {
+  spawn("npm", ["install", pkg]);
+}
+
+// js-pathtraversal-url-medium
+function pathtraversalUrlMedium(base, file) {
+  const safePath = path.join(base, path.basename(decodeURIComponent(file)));
+}
+
+// js-err-promise-unhandled-medium
+async function errPromiseUnhandledMedium() {
+  asyncOp().catch(err => logger.error(err));
+}
+
+// js-err-async-callback-hard
+function errAsyncCallbackHard(callback) {
+  fs.readFile(file, (err, data) => {
+    if (err) return callback(err);
+    callback(null, data);
+  });
+}
+
+// js-coercion-loose-equality-easy
+function coercionLooseEqualityEasy(value) {
+  if (value === null || value === undefined) {}
+}
+
+// js-coercion-array-check-medium
+function coercionArrayCheckMedium(input) {
+  if (Array.isArray(input)) {}
+}
+
+// js-coercion-number-parse-hard
+function coercionNumberParseHard(str) {
+  const num = Number(str);
+  if (Number.isNaN(num)) throw new Error("Invalid");
+}
+
+// js-regex-redos-easy
+function regexRedosEasy(input) {
+  if (/^[a-zA-Z0-9]+$/.test(input)) {}
+}
+
+// js-regex-injection-medium
+function regexInjectionMedium(pattern) {
+  new RegExp(escapeRegex(pattern));
+}
+
+// js-secret-hardcoded-easy
+function secretHardcodedEasy() {
+  const apiKey = process.env.API_KEY;
+}
+
+// js-secret-log-medium
+function secretLogMedium(userId) {
+  logger.info("Auth success", { userId });
+}
+
+// js-timing-comparison-easy
+function timingComparisonEasy(a, b) {
+  crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+}
+
+// js-redirect-unvalidated-easy
+function redirectUnvalidatedEasy(isSafe, res) {
+  if (isSafe) {}
+  else res.redirect("/");
+}
+
+// js-ssrf-fetch-easy
+function ssrfFetchEasy(key, allowedUrls) {
+  fetch(allowedUrls[key]);
+}
+
+// js-perf-loop-dom-easy
+function perfLoopDomEasy(items, container) {
+  const fragment = document.createDocumentFragment();
+  items.forEach(item => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    fragment.appendChild(li);
+  });
+  container.appendChild(fragment);
+}
+
+// js-perf-string-concat-medium
+function perfStringConcatMedium(items) {
+  result = items.join("");
+}
+
+// js-fp-eval-json
+function fpEvalJson(input) {
+  const data = JSON.parse(input);
+}
+
+// js-fp-innerhtml-constant
+function fpInnerhtmlConstant(element) {
+  element.innerHTML = "<span>Loading...</span>";
+}
+
+// js-fp-exec-constant
+function fpExecConstant(callback) {
+  exec("ls -la", callback);
+}

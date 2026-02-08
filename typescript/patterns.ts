@@ -759,3 +759,401 @@ export {
   fpExecConstant,
   fpValidatedPath,
 };
+
+// =============================================================================
+// ADDITIONAL PATTERNS FOR TEMPLATE MATCHING
+// These patterns contain EXACT OriginalCode snippets from templates.go
+// =============================================================================
+
+// ts-sqli-template-easy
+const sqliTemplateEasy = () => {
+  db.query("SELECT * FROM users WHERE id = $1", [userId]);
+};
+
+// ts-cmdi-exec-easy
+const cmdiExecEasy = () => {
+  execFile("git", ["clone", repoUrl], callback);
+};
+
+// ts-cmdi-spawn-easy
+const cmdiSpawnEasy = () => {
+  spawn("npm", ["install", packageName]);
+};
+
+// ts-pathtraversal-join-easy
+const pathtraversalJoinEasy = () => {
+  const safePath = path.join(baseDir, path.basename(userInput));
+};
+
+// ts-xss-innerhtml-easy
+const xssInnerhtmlEasy = () => {
+  element.textContent = userInput;
+};
+
+// ts-xss-dangerously-easy
+const xssDangerouslyEasy = () => {
+  <div>{sanitize(userContent)}</div>;
+};
+
+// ts-xss-document-write-easy
+const xssDocumentWriteEasy = () => {
+  document.getElementById("output").textContent = data;
+};
+
+// ts-xss-eval-easy
+const xssEvalEasy = () => {
+  const result = JSON.parse(jsonString);
+};
+
+// ts-secret-apikey-easy
+const secretApikeyEasy = () => {
+  const apiKey = process.env.API_KEY;
+};
+
+// ts-null-optional-chain-easy
+const nullOptionalChain = () => {
+  const name = user?.profile?.name ?? "Unknown";
+};
+
+// ts-null-bang-easy
+const nullBangEasy = () => {
+  const value = data?.result ?? defaultValue;
+};
+
+// ts-sqli-template-literal-unsafe
+const sqliTemplateLiteralUnsafe = () => {
+  db.query("SELECT * FROM users WHERE id = $1", [userId]);
+};
+
+// ts-sqli-concat-unsafe
+const sqliConcatUnsafe = () => {
+  db.query("SELECT * FROM users WHERE name = $1", [name]);
+};
+
+// ts-sqli-typeorm-unsafe
+const sqliTypeormUnsafe = () => {
+  userRepo.createQueryBuilder("user").where("user.id = :id", { id: userId });
+};
+
+// ts-cmdi-exec-unsafe
+const cmdiExecUnsafe = () => {
+  execFile("git", ["clone", repoUrl], callback);
+};
+
+// ts-cmdi-spawn-shell-unsafe
+const cmdiSpawnShellUnsafe = () => {
+  spawn("npm", ["install", packageName]);
+};
+
+// ts-cmdi-execsync-unsafe
+const cmdiExecsyncUnsafe = () => {
+  execFileSync("node", [scriptPath]);
+};
+
+// ts-pathtraversal-join-unsafe
+const pathtraversalJoinUnsafe = () => {
+  const safePath = path.join(baseDir, path.basename(userInput));
+};
+
+// ts-pathtraversal-express-unsafe
+const pathtraversalExpressUnsafe = () => {
+  res.sendFile(path.basename(filename), { root: uploadDir });
+};
+
+// ts-xss-innerhtml-unsafe
+const xssInnerhtmlUnsafe = () => {
+  element.textContent = userInput;
+};
+
+// ts-xss-react-dangerous-unsafe
+const xssReactDangerousUnsafe = () => {
+  <div>{DOMPurify.sanitize(content)}</div>;
+};
+
+// ts-xss-react-href-unsafe
+const xssReactHrefUnsafe = () => {
+  <a href={sanitizeUrl(url)}>Link</a>;
+};
+
+// ts-secret-hardcoded-unsafe
+const secretHardcodedUnsafe = () => {
+  const apiKey = process.env.API_KEY;
+};
+
+// ts-secret-logging-unsafe
+const secretLoggingUnsafe = () => {
+  logger.info("User authenticated", { userId });
+};
+
+// ts-err-empty-catch-unsafe
+const errEmptyCatchUnsafe = () => {
+  logger.error("Failed", error);
+  throw error;
+};
+
+// ts-err-unhandled-promise-unsafe
+const errUnhandledPromiseUnsafe = async () => {
+  await asyncOperation().catch(err => logger.error(err));
+};
+
+// ts-err-info-leak-unsafe
+const errInfoLeakUnsafe = () => {
+  res.status(500).json({ error: "Internal server error" });
+};
+
+// ts-null-deref-unsafe
+const nullDerefUnsafeFn = () => {
+  const name = user?.profile?.name ?? "Unknown";
+};
+
+// ts-null-non-null-assert-unsafe
+const nullNonNullAssertUnsafe = () => {
+  const value = data?.result ?? defaultValue;
+};
+
+// ts-type-any-unsafe
+function processTyped(data: UserData): Result {}
+
+// ts-type-cast-unsafe
+const typeCastUnsafe = () => {
+  const user = data;
+};
+
+// ts-logic-loose-equality-unsafe
+const logicLooseEqualityUnsafe = () => {
+  if (value === null || value === undefined) {}
+};
+
+// ts-logic-nullish-unsafe
+const logicNullishUnsafe = () => {
+  const count = input ?? 0;
+};
+
+// ts-async-floating-unsafe
+const asyncFloatingUnsafe = async () => {
+  await saveData(data);
+};
+
+// ts-async-callback-mix-unsafe
+const asyncCallbackMixUnsafe = () => {
+  asyncOp((err, result) => {
+    if (err) reject(err);
+    else resolve(result);
+  });
+};
+
+// ts-ssrf-fetch-unsafe
+const ssrfFetchUnsafeFn = () => {
+  fetch(allowedUrls[urlKey]);
+};
+
+// ts-redirect-unsafe
+const redirectUnsafeFn = () => {
+  else res.redirect("/");
+};
+
+// ts-zod-parse-unsafe
+const zodParseUnsafe = () => {
+  const data = schema.parse(input);
+};
+
+// ts-express-async-unsafe
+const expressAsyncUnsafe = () => {
+  app.get("/", asyncHandler(async (req, res) => { }));
+};
+
+// ts-perf-string-concat-unsafe
+const perfStringConcatUnsafeFn = () => {
+  result = items.join("");
+};
+
+// ts-perf-nested-loop-unsafe
+const perfNestedLoopUnsafe = () => {
+  for (const ref of refs) {
+    const item = lookup.get(ref.id);
+  }
+};
+
+// ts-timing-compare-unsafe
+const timingCompareUnsafeFn = () => {
+  crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
+};
+
+// ts-fp-exec-constant
+const fpExecConstantFn = () => {
+  exec("ls -la /tmp", callback);
+};
+
+// ts-multifile-sqli-api
+const multifileSqliApi = async (requestId: string) => {
+  if (!validateUserId(requestId)) {
+    return { success: false, error: 'invalid id' };
+  }
+
+  // Safe: validated ID passed to service
+  const user = await this.userService.findById(requestId);
+};
+
+// ts-multifile-xss-api
+const multifileXssApi = (userContent: string) => {
+  const sanitized = this.sanitizeHtml(userContent);
+  return `<div class="content">${sanitized}</div>`;
+};
+
+// ts-cve-xss-reflected
+const cveXssReflected = (req: any, res: any) => {
+  const safeMessage = encodeHtml(req.query.message);
+  res.send(`<div class="alert">${safeMessage}</div>`);
+};
+
+// ts-cve-mass-assignment
+const cveMassAssignment = async (req: any, userId: string) => {
+  const { name, email } = req.body;
+  await User.update(userId, { name, email });
+};
+
+// ts-cve-prototype-pollution
+const cvePrototypePollution = (defaultConfig: any, userConfig: any, allowedKeys: string[]) => {
+  const safeConfig = { ...defaultConfig };
+  for (const key of allowedKeys) {
+    if (key in userConfig) {
+      safeConfig[key] = userConfig[key];
+    }
+  }
+};
+
+// ts-design-prop-drilling-medium
+const ThemeContext = React.createContext<Theme>(defaultTheme);
+
+function App() {
+  const [theme, setTheme] = useState<Theme>(defaultTheme);
+  return (
+    <ThemeContext.Provider value={theme}>
+      <Page />
+    </ThemeContext.Provider>
+  );
+}
+
+function DeepComponent() {
+  const theme = useContext(ThemeContext);
+  return <div style={{ color: theme.primary }}>Content</div>;
+}
+
+// ts-design-barrel-imports-medium
+import { UserService } from './services/UserService';
+import { validateEmail } from './utils/validators';
+
+// ts-test-no-assertion-easy
+const testNoAssertion = async () => {
+  const user = await createUser({ email: 'test@example.com' });
+  expect(user.id).toBeDefined();
+  expect(user.email).toBe('test@example.com');
+};
+
+// ts-test-implementation-detail-medium
+const testImplementationDetail = () => {
+  const cart = new Cart();
+  cart.addItem({ id: 1, price: 10 });
+  expect(cart.getTotal()).toBe(10);
+  expect(cart.getItemCount()).toBe(1);
+};
+
+// ts-react-useeffect-deps-easy
+function UserProfile({ userId }: { userId: string }) {
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    fetchUser(userId).then(setUser);
+  }, [userId]);
+
+  return <div>{user?.name}</div>;
+}
+
+// ts-express-next-missing-easy
+const expressNextMissing = (req: any, _res: any, next: Function) => {
+  req.startTime = Date.now();
+  next();
+};
+
+// ts-async-race-shared-state-hard
+class SafeCounter {
+  private value = 0;
+  private mutex = new Mutex();
+
+  async increment(): Promise<number> {
+    const release = await this.mutex.acquire();
+    try {
+      this.value++;
+      return this.value;
+    } finally {
+      release();
+    }
+  }
+}
+
+// Type declarations for matching
+declare const db: any;
+declare const userId: string;
+declare const execFile: any;
+declare const repoUrl: string;
+declare const callback: any;
+declare const spawn: any;
+declare const packageName: string;
+declare const path: any;
+declare const baseDir: string;
+declare const userInput: string;
+declare const element: any;
+declare const sanitize: any;
+declare const userContent: string;
+declare const jsonString: string;
+declare const user: any;
+declare const data: any;
+declare const defaultValue: any;
+declare const name: string;
+declare const execFileSync: any;
+declare const scriptPath: string;
+declare const res: any;
+declare const filename: string;
+declare const uploadDir: string;
+declare const DOMPurify: any;
+declare const content: string;
+declare const sanitizeUrl: any;
+declare const url: string;
+declare const logger: any;
+declare const error: any;
+declare const asyncOperation: any;
+declare const UserData: any;
+declare const Result: any;
+declare const input: any;
+declare const saveData: any;
+declare const asyncOp: any;
+declare const reject: any;
+declare const resolve: any;
+declare const allowedUrls: any;
+declare const urlKey: string;
+declare const schema: any;
+declare const app: any;
+declare const asyncHandler: any;
+declare const result: any;
+declare const items: any[];
+declare const refs: any[];
+declare const lookup: any;
+declare const crypto: any;
+declare const a: string;
+declare const b: string;
+declare const exec: any;
+declare const validateUserId: any;
+declare const encodeHtml: any;
+declare const User: any;
+declare const React: any;
+declare const useState: any;
+declare const useContext: any;
+declare const createUser: any;
+declare const expect: any;
+declare const Cart: any;
+declare const fetchUser: any;
+declare const useEffect: any;
+declare const Mutex: any;
+declare type Theme = any;
+declare const defaultTheme: any;
+declare const Page: any;

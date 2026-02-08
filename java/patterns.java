@@ -889,3 +889,364 @@ class PerformancePatterns {
         return result;
     }
 }
+
+// =============================================================================
+// ADDITIONAL PATTERNS FOR TEMPLATE MATCHING
+// =============================================================================
+
+// java-cmdi-runtime-easy
+void cmdiRuntimeEasy() {
+    pb.redirectErrorStream(true);
+    Process p = pb.start();
+}
+
+// java-pathtraversal-direct-easy
+byte[] pathtraversalDirectEasy(Path basePath, String filename) throws Exception {
+    Path requestedPath = basePath.resolve(filename).normalize();
+    if (!requestedPath.startsWith(basePath)) {
+        throw new SecurityException("Path traversal attempt");
+    }
+    return Files.readAllBytes(requestedPath);
+}
+
+// java-xss-reflect-easy
+void xssReflectEasy(HttpServletResponse resp, String safeMessage) throws Exception {
+    resp.getWriter().write("<div>" + safeMessage + "</div>");
+}
+
+// java-crypto-md5-easy
+byte[] cryptoMd5Easy(String password, SecureRandom random) throws Exception {
+    byte[] salt = new byte[16];
+    random.nextBytes(salt);
+    KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 65536, 128);
+    SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+    return factory.generateSecret(spec).getEncoded();
+}
+
+// java-crypto-random-easy
+String cryptoRandomEasy(SecureRandom random) {
+    byte[] bytes = new byte[32];
+    random.nextBytes(bytes);
+    return Base64.getEncoder().encodeToString(bytes);
+}
+
+// java-null-deref-easy
+String nullDerefEasy(User user) {
+    if (user != null) {
+        return user.getName();
+    }
+    return "";
+}
+
+// java-err-swallowed-easy
+void errSwallowedEasy(Exception e) {
+    logger.error("Database error", e);
+    throw new ServiceException("Failed to process request", e);
+}
+
+// java-resource-leak-easy
+ResultSet resourceLeakEasy(Connection conn, String query) throws Exception {
+    // Use connection
+    return conn.createStatement().executeQuery(query);
+}
+
+// java-ssrf-url-easy
+InputStream ssrfUrlEasy(String targetUrl) throws Exception {
+    if (!isAllowedUrl(targetUrl)) {
+        throw new SecurityException("URL not allowed");
+    }
+    return new URL(targetUrl).openStream();
+}
+
+// java-sqli-builder-medium
+void sqliBuilderMedium(PreparedStatement ps, String status) throws Exception {
+    ps.setString(1, status);
+}
+
+// java-sqli-orderby-hard
+void sqliOrderbyHard(String[] allowed, String sortBy, StringBuilder query) {
+    if (Arrays.asList(allowed).contains(sortBy)) {
+        query.append(" ORDER BY ").append(sortBy);
+    }
+}
+
+// java-pathtraversal-zip-medium
+void pathtraversalZipMedium(File destDir, String name) throws Exception {
+    File destFile = new File(destDir, name);
+    String destPath = destFile.getCanonicalPath();
+    if (!destPath.startsWith(destDir.getCanonicalPath() + File.separator)) {
+        throw new IOException("Entry outside target dir: " + name);
+    }
+}
+
+// java-pathtraversal-url-hard
+void pathtraversalUrlHard(String decoded, String baseDir) {
+    String safe = new File(decoded).getName();
+    Path path = Paths.get(baseDir, safe);
+}
+
+// java-xss-stored-medium
+void xssStoredMedium(PrintWriter out, String safe) {
+    out.println("<div>" + safe + "</div>");
+}
+
+// java-xss-json-hard
+void xssJsonHard(PrintWriter out, String safe) {
+    out.println("<script>var data = '" + safe + "';</script>");
+}
+
+// java-deser-xml-medium
+void deserXmlMedium(DocumentBuilderFactory dbf) throws Exception {
+    dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+    dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+}
+
+// java-deser-yaml-hard
+Object deserYamlHard(Yaml yaml, String input) {
+    Object data = yaml.load(input);
+    return data;
+}
+
+// java-crypto-hardcoded-easy
+byte[] cryptoHardcodedEasy() {
+    byte[] key = Base64.getDecoder().decode(System.getenv("ENCRYPTION_KEY"));
+    return key;
+}
+
+// java-null-optional-medium
+Object nullOptionalMedium(Optional optional, Object defaultValue) {
+    return optional.orElse(defaultValue);
+}
+
+// java-null-chain-hard
+String nullChainHard(Optional<User> userOpt) {
+    return userOpt
+        .map(User::getProfile)
+        .map(Profile::getAddress)
+        .map(Address::getCity)
+        .orElse("Unknown");
+}
+
+// java-err-generic-medium
+void errGenericMedium(Exception e) throws Exception {
+    if (e instanceof IOException) {
+        logger.error("IO error", e);
+        throw new ServiceException("Failed to read file", e);
+    }
+    if (e instanceof ParseException) {
+        logger.error("Parse error", e);
+        throw new ServiceException("Invalid format", e);
+    }
+}
+
+// java-err-info-leak-hard
+ResponseEntity errInfoLeakHard(Exception e) {
+    logger.error("Error processing request", e);
+    return ResponseEntity.status(500).body("Internal server error");
+}
+
+// java-resource-stream-easy
+byte[] resourceStreamEasy(InputStream is) throws Exception {
+    try (is) {
+        return IOUtils.toByteArray(is);
+    }
+}
+
+// java-resource-connection-medium
+void resourceConnectionMedium(Connection conn) {
+    try (conn) {
+        // use connection
+    }
+}
+
+// java-resource-lock-hard
+void resourceLockHard(Lock lock) {
+    lock.lock();
+    try {
+        // critical section
+    } finally {
+        lock.unlock();
+    }
+}
+
+// java-race-check-then-act-easy
+Object raceCheckThenActEasy(Map map, String key) {
+    synchronized(map) {
+        if (!map.containsKey(key)) {
+            map.put(key, computeValue());
+        }
+        return map.get(key);
+    }
+}
+
+// java-race-compound-hard
+void raceCompoundHard(AtomicInteger counter) {
+    counter.incrementAndGet();
+}
+
+// java-log-injection-easy
+void logInjectionEasy(Logger logger, String username) {
+    logger.info("User login: {}", username.replaceAll("[\n\r]", "_"));
+}
+
+// java-log-sensitive-medium
+void logSensitiveMedium(Logger logger, String userId) {
+    logger.info("User authenticated: {}", userId);
+}
+
+// java-auth-timing-easy
+boolean authTimingEasy(byte[] expected, byte[] provided) {
+    return MessageDigest.isEqual(expected, provided);
+}
+
+// java-auth-bypass-medium
+Object authBypassMedium(HttpServletRequest request, String id, UserService userService) {
+    if (isAuthenticated(request)) {
+        return userService.getUser(id);
+    }
+    throw new UnauthorizedException();
+}
+
+// java-perf-nplus1-easy
+String perfNplus1Easy() {
+    return "SELECT u FROM User u JOIN FETCH u.orders WHERE u.id IN :ids";
+}
+
+// java-perf-string-concat-medium
+String perfStringConcatMedium(StringBuilder sb, String[] items) {
+    for (String s : items) {
+        sb.append(s);
+    }
+    return sb.toString();
+}
+
+// java-perf-regex-hard
+void perfRegexHard(Pattern PATTERN, String[] items) {
+    for (String s : items) {
+        if (PATTERN.matcher(s).matches()) {
+            // ...
+        }
+    }
+}
+
+// java-cve-log4shell-lookup
+void cveLog4shellLookup(Logger logger, String userAgent) {
+    logger.info("User-Agent: {}", sanitize(userAgent));
+}
+
+// java-cve-struts-header
+void cveStrutsHeader(HttpServletResponse response, Map<String, String> ALLOWED_TYPES, String type) {
+    response.setHeader("Content-Type", ALLOWED_TYPES.get(type));
+}
+
+// java-cve-deser-config
+void cveDeserConfig(ObjectMapper mapper) {
+    mapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NONE);
+}
+
+// java-cve-idor-direct
+Object cveIdorDirect(String orderId, OrderService orderService, HttpServletRequest request) {
+    if (isAuthorized(request, orderId)) {
+        return orderService.getOrder(orderId);
+    }
+    throw new ForbiddenException();
+}
+
+// java-cve-priv-esc
+void cvePrivEsc(User user, String newRole, boolean isAdmin) {
+    if (isAdmin) {
+        user.setRole(newRole);
+    }
+}
+
+// java-cve-spring-pathtraversal
+Resource cveSpringPathtraversal(String filename) {
+    return new ClassPathResource("static/" + FilenameUtils.getName(filename));
+}
+
+// java-cve-spring-spel
+Object cveSpringSpel(Object value) {
+    return value;
+}
+
+// java-cve-session-fixation
+void cveSessionFixation(HttpServletRequest request, User user) {
+    request.getSession().invalidate();
+    HttpSession newSession = request.getSession(true);
+    newSession.setAttribute("user", user);
+}
+
+// java-cve-classloader
+void cveClassloader(Set<String> ALLOWED_CLASSES, String className) throws Exception {
+    if (ALLOWED_CLASSES.contains(className)) {
+        Class.forName(className);
+    }
+}
+
+// java-cve-method-invoke
+void cveMethodInvoke(Set<String> ALLOWED_METHODS, String methodName, Method method, Object target, Object[] args) throws Exception {
+    if (ALLOWED_METHODS.contains(methodName)) {
+        method.invoke(target, args);
+    }
+}
+
+// java-cve-socket-deser
+Object cveSocketDeser(BufferedReader reader, ObjectMapper objectMapper) throws Exception {
+    String json = reader.readLine();
+    return objectMapper.readValue(json, SafeClass.class);
+}
+
+// java-cve-dns-rebinding
+void cveDnsRebinding(InetAddress addr) {
+    if (addr.isSiteLocalAddress() || addr.isLoopbackAddress()) {
+        throw new SecurityException("Internal address not allowed");
+    }
+}
+
+// java-cve-content-type
+void cveContentType(HttpServletResponse response, String json) throws Exception {
+    response.setContentType("application/json");
+    response.getWriter().write(json);
+}
+
+// java-cve-header-injection
+void cveHeaderInjection(HttpServletResponse response, String safeValue) {
+    response.setHeader("X-Custom", safeValue);
+}
+
+// java-cve-spring4shell
+void cveSpring4shell(WebDataBinder binder) {
+    String[] blacklist = {"class.*"};
+    binder.setDisallowedFields(blacklist);
+}
+
+// java-cve-text4shell
+String cveText4shell(String template, Object[] args) {
+    return MessageFormat.format(template, args);
+}
+
+// java-fp-sql-allowlist
+void fpSqlAllowlist(Statement stmt, String table) throws Exception {
+    stmt.executeQuery("SELECT * FROM " + table);
+}
+
+// java-fp-cmd-constant
+void fpCmdConstant() throws Exception {
+    Runtime.getRuntime().exec(new String[]{"ls", "-la", "/tmp"});
+}
+
+// java-fp-reflection-constant
+void fpReflectionConstant() throws Exception {
+    Class.forName("com.myapp.MyClass");
+}
+
+// Helper interfaces
+interface User { String getName(); Profile getProfile(); void setRole(String role); }
+interface Profile { Address getAddress(); }
+interface Address { String getCity(); }
+interface UserService { Object getUser(String id); }
+interface OrderService { Object getOrder(String id); }
+class ServiceException extends RuntimeException { ServiceException(String msg, Exception e) { super(msg, e); } }
+class UnauthorizedException extends RuntimeException {}
+class ForbiddenException extends RuntimeException {}
+class SafeClass {}
