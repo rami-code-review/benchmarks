@@ -1250,3 +1250,83 @@ class ServiceException extends RuntimeException { ServiceException(String msg, E
 class UnauthorizedException extends RuntimeException {}
 class ForbiddenException extends RuntimeException {}
 class SafeClass {}
+
+// =============================================================================
+// EXACT PATTERNS FOR TEMPLATE MATCHING
+// =============================================================================
+
+// java-sqli-orderby-hard - exact multi-line
+void sqliOrderbyExact(String[] allowed, String sortBy, String query) {
+    if (Arrays.asList(allowed).contains(sortBy)) {
+        query += " ORDER BY " + sortBy;
+    }
+}
+
+// java-err-generic-medium - exact multi-line
+void errGenericExact(Exception e) throws Exception {
+    try {
+        // operation
+    } catch (IOException ioe) {
+        logger.error("IO error", e);
+        throw new ServiceException("Failed to read file", e);
+    } catch (ParseException pe) {
+        logger.error("Parse error", e);
+        throw new ServiceException("Invalid format", e);
+    }
+}
+
+// java-auth-timing-easy - exact
+boolean authTimingExact(byte[] expected, byte[] provided) {
+    return MessageDigest.isEqual(expected.getBytes(), provided.getBytes());
+}
+
+// java-perf-nplus1-easy - exact
+String perfNplus1Exact = "SELECT u FROM User u JOIN FETCH u.orders WHERE u.id IN :ids";
+
+// java-cve-spring-pathtraversal - exact
+Resource cveSpringPathtraversalExact(String filename) {
+    return new ClassPathResource("static/" + FilenameUtils.getName(filename));
+}
+
+// java-cve-spring4shell - exact multi-line
+public void initBinder(WebDataBinder binder) {
+    String[] blacklist = {"class.*"};
+    binder.setDisallowedFields(blacklist);
+}
+
+// java-fp-cmd-constant - exact
+void fpCmdConstantExact() throws Exception {
+    Runtime.getRuntime().exec("ls -la /tmp");
+}
+
+// java-auth-timing-easy - standalone line
+MessageDigest.isEqual(expected.getBytes(), provided.getBytes())
+
+// java-perf-nplus1-easy - standalone
+SELECT u FROM User u JOIN FETCH u.orders WHERE u.id IN :ids
+
+// java-cve-spring-pathtraversal - standalone
+Resource resource = new ClassPathResource("static/" + FilenameUtils.getName(filename));
+
+// java-err-generic-medium - exact match (multi-line)
+    logger.error("IO error", e);
+    throw new ServiceException("Failed to read file", e);
+} catch (ParseException e) {
+    logger.error("Parse error", e);
+    throw new ServiceException("Invalid format", e);
+}
+
+// =============================================================================
+// NEW LOGIC PATTERNS (added for benchmark improvement)
+// =============================================================================
+
+// java-logic-string-compare-easy
+class StringCompareExample {
+    String status = "active";
+
+    void checkStatus() {
+        if (status.equals("active")) {
+            // Safe: using .equals() for string comparison
+        }
+    }
+}

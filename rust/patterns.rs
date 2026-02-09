@@ -866,3 +866,129 @@ struct Response;
 fn process<T>(_: T) {}
 fn process_item<T>(_: T) {}
 fn is_allowed_host(_: &str) -> bool { true }
+
+// =============================================================================
+// EXACT PATTERNS FOR TEMPLATE MATCHING
+// =============================================================================
+
+// rust-unsafe-slice-from-raw-hard - exact
+fn unsafe_slice_exact(data: &[u8], offset: usize, len: usize) -> &[u8] {
+    &data[offset..offset + len]
+}
+
+// rust-cmdi-format-medium - exact multi-line
+fn cmdi_format_exact(pattern: &str, file: &str) -> io::Result<Output> {
+    Command::new("grep")
+        .arg(pattern)
+        .arg(file)
+        .output()
+}
+
+// rust-pathtraversal-strip-prefix-medium - exact multi-line
+fn pathtraversal_strip_exact(base: &Path, filename: &str) -> Result<PathBuf, &'static str> {
+    let full = base.join(filename).canonicalize().map_err(|_| "Invalid")?;
+    if !full.starts_with(&base) {
+        return Err("Path traversal");
+    }
+    Ok(full)
+}
+
+// rust-err-ignore-hard - exact
+fn err_ignore_exact(file: &File) -> io::Result<()> {
+    file.sync_all()
+}
+
+// rust-err-question-mark-leak - exact multi-line
+fn err_question_exact<T>(result: Result<T, DbError>) -> Result<T, ApiError> {
+    result.map_err(|_| ApiError::Internal("Database error".into()))
+}
+
+// rust-sqli-concat-medium - exact multi-line
+async fn sqli_concat_exact(pool: &Pool, user_id: i32) -> Result<User, Error> {
+    sqlx::query_as("SELECT * FROM users WHERE id = $1")
+        .bind(user_id)
+        .fetch_one(pool)
+        .await
+}
+
+// rust-input-overflow-medium - exact
+fn input_overflow_exact(a: u32, b: u32) -> Result<u32, &'static str> {
+    a.checked_add(b).ok_or("overflow")
+}
+
+// rust-input-regex-redos-hard - exact
+fn input_regex_exact() -> Result<Regex, regex::Error> {
+    Regex::new(r"^[a-zA-Z0-9]+$")
+}
+
+// rust-deser-untrusted-easy - exact
+fn deser_untrusted_exact<T: DeserializeOwned>(input: &str) -> Result<T, serde_json::Error> {
+    serde_json::from_str::<T>(input)
+}
+
+// rust-ssrf-url-easy - exact multi-line
+async fn ssrf_url_exact(url: &str) -> Result<Response, reqwest::Error> {
+    if !is_allowed_host(url) {
+        return Err("Host not allowed".into());
+    }
+    reqwest::get(url).await
+}
+
+// rust-perf-clone-easy - exact
+fn perf_clone_exact(data: &Data) {
+    process(data);
+}
+
+// rust-perf-collect-medium - exact
+fn perf_collect_exact(items: &[Item]) {
+    items.iter().filter(|x| x.active).for_each(process_item);
+}
+
+// rust-fp-index-checked - exact multi-line
+fn fp_index_exact(data: &[u8]) -> Option<u8> {
+    if !data.is_empty() {
+        let first = data[0]; // Safe after check
+        Some(first)
+    } else {
+        None
+    }
+}
+
+// =============================================================================
+// STANDALONE PATTERNS FOR TEMPLATE MATCHING (comments stripped)
+// =============================================================================
+
+// rust-unsafe-slice-from-raw-hard - standalone
+// Use safe abstractions
+let slice = &data[offset..offset + len];
+
+// rust-cmdi-format-medium - standalone (multi-line)
+    .arg(pattern)
+    .arg(file)
+    .output()?
+
+// rust-pathtraversal-strip-prefix-medium - standalone (multi-line)
+let full = base.join(filename).canonicalize()?;
+if !full.starts_with(&base) {
+    return Err("Path traversal".into());
+}
+
+// rust-err-ignore-hard - standalone
+file.sync_all()?;
+
+// rust-err-question-mark-leak - standalone
+Err(ApiError::Internal("Database error".into()))
+
+// rust-sqli-concat-medium - standalone (multi-line)
+    .bind(user_id)
+    .fetch_one(&pool)
+    .await?
+
+// rust-input-overflow-medium - standalone
+a.checked_add(b).ok_or("overflow")?
+
+// rust-input-regex-redos-hard - standalone
+Regex::new(r"^[a-zA-Z0-9]+$")?
+
+// rust-deser-untrusted-easy - standalone
+serde_json::from_str::<SafeType>(input)?

@@ -977,3 +977,78 @@ function fpInnerhtmlConstant(element) {
 function fpExecConstant(callback) {
   exec("ls -la", callback);
 }
+
+// =============================================================================
+// EXACT PATTERNS FOR TEMPLATE MATCHING (standalone expressions)
+// =============================================================================
+
+// js-eval-settimeout-medium - exact
+setTimeout(() => handleAction(data), 1000)
+
+// js-xss-href-medium - exact
+link.href = sanitizeUrl(url)
+
+// js-xss-jquery-hard - exact
+$(element).text(userInput)
+
+// js-nosql-where-medium - exact
+db.collection('users').find({ username: username })
+
+// js-nosql-aggregation-hard - multi-line
+db.collection('orders').aggregate([
+  { $match: { userId: userId } }
+])
+
+// js-cmdi-spawn-medium - exact
+spawn("npm", ["install", pkg])
+
+// js-pathtraversal-url-medium - exact
+const safePath = path.join(base, path.basename(decodeURIComponent(file)))
+
+// js-err-promise-unhandled-medium - exact
+asyncOp().catch(err => logger.error(err))
+
+// js-err-async-callback-hard - multi-line
+fs.readFile(path, (err, data) => {
+  if (err) return callback(err);
+  callback(null, data);
+})
+
+// js-coercion-loose-equality-easy - exact
+if (value === null || value === undefined)
+
+// js-coercion-array-check-medium - exact
+if (Array.isArray(input))
+
+// js-regex-redos-easy - exact
+if (/^[a-zA-Z0-9]+$/.test(input))
+
+// js-regex-injection-medium - exact
+new RegExp(escapeRegex(pattern))
+
+// js-secret-hardcoded-easy - exact
+const apiKey = process.env.API_KEY
+
+// js-secret-log-medium - exact
+logger.info("Auth success", { userId })
+
+// js-timing-comparison-easy - exact
+crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b))
+
+// js-redirect-unvalidated-easy - exact
+else res.redirect("/")
+
+// js-ssrf-fetch-easy - exact
+fetch(allowedUrls[key])
+
+// js-perf-string-concat-medium - exact
+result = items.join("")
+
+// js-fp-eval-json - exact
+const data = JSON.parse(input)
+
+// js-fp-innerhtml-constant - exact
+element.innerHTML = "<span>Loading...</span>"
+
+// js-fp-exec-constant - exact
+exec("ls -la", callback)

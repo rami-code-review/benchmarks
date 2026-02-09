@@ -1235,3 +1235,76 @@ public class Item {}
 public class User { public string Name; public Profile Profile; }
 public class Profile { public Address Address; }
 public class Address { public string City; }
+
+// =============================================================================
+// EXACT PATTERNS FOR TEMPLATE MATCHING
+// =============================================================================
+
+// cs-xss-razor-easy - exact (Razor syntax)
+// @HttpUtility.HtmlEncode(Model.Content)
+
+// cs-deser-json-typenamehandling-medium - exact
+T DeserJsonExact<T>(string json)
+{
+    return JsonConvert.DeserializeObject<T>(json);
+}
+
+// cs-crypto-ecb-medium - exact
+void CryptoEcbExact(Aes aes)
+{
+    aes.Mode = CipherMode.CBC;
+}
+
+// cs-null-collection-medium - exact
+void NullCollectionExact(IEnumerable<Item> items)
+{
+    foreach (var item in items ?? Enumerable.Empty<Item>()) { }
+}
+
+// cs-auth-timing-easy - exact
+bool AuthTimingExact(byte[] expected, byte[] provided)
+{
+    return CryptographicOperations.FixedTimeEquals(expected, provided);
+}
+
+// cs-fp-null-validated - exact
+public string FpNullValidatedExact(User user) => user.Name;
+
+// --- STANDALONE PATTERNS FOR TEMPLATE MATCHING ---
+
+// cs-xss-razor-easy - standalone
+@HttpUtility.HtmlEncode(Model.Content)
+
+// cs-deser-json-typenamehandling-medium - standalone
+JsonConvert.DeserializeObject<MyClass>(json);
+
+// cs-crypto-ecb-medium - standalone (multi-line)
+using var aes = Aes.Create();
+aes.Mode = CipherMode.GCM;
+
+// cs-null-collection-medium - standalone
+foreach (var item in items ?? Enumerable.Empty<Item>())
+
+// cs-auth-timing-easy - standalone
+CryptographicOperations.FixedTimeEquals(expected, provided)
+
+// cs-fp-null-validated - standalone (multi-line)
+// Called only when user is non-null
+public string GetName(User user) => user.Name;
+
+// =============================================================================
+// NEW LOGIC PATTERNS (added for benchmark improvement)
+// =============================================================================
+
+// cs-logic-string-compare-easy
+class StringCompareExample
+{
+    public bool CompareStrings(string input, string expected)
+    {
+        if (string.Equals(input, expected, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+        return false;
+    }
+}
