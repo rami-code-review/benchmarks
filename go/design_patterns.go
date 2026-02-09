@@ -185,3 +185,50 @@ type EmailClient interface{}
 
 func handleStatus(s Status)  {}
 func checkStatus() Status    { return Status{} }
+
+// =============================================================================
+// CIRCULAR DEPENDENCY PATTERN - go-design-circular-dep-hard
+// =============================================================================
+
+// pkg/user/service.go
+type CircularDepUserService struct {
+	notifier Notifier // interface defined here
+}
+
+// pkg/notification/service.go
+type CircularDepNotificationService struct {
+	// Uses user.Notifier interface, no import of user package
+}
+
+// =============================================================================
+// WRONG LAYER PATTERN - go-design-wrong-layer-hard
+// =============================================================================
+
+// SAFE: Business logic in service layer
+func (s *WrongLayerService) CreateUser(u WrongLayerUserType) error {
+	if u.Age < 18 {
+		return errors.New("user must be 18 or older")
+	}
+	return s.repo.Insert(u)
+}
+
+// repository layer - just data access
+func (r *WrongLayerRepo) Insert(u WrongLayerUserType) error {
+	_, err := r.db.Exec("INSERT INTO users (name, age) VALUES ($1, $2)", u.Name, u.Age)
+	return err
+}
+
+type WrongLayerUserType struct {
+	Name string
+	Age  int
+}
+
+type WrongLayerService struct {
+	repo *WrongLayerRepo
+}
+
+type WrongLayerRepo struct {
+	db interface {
+		Exec(string, ...interface{}) (interface{}, error)
+	}
+}

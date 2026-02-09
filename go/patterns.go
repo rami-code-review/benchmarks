@@ -782,3 +782,111 @@ func (c *SafeCounter) Inc() { // Pointer receiver
 	defer c.mu.Unlock()
 	c.value++
 }
+
+// =============================================================================
+// EXACT PATTERNS FOR TEMPLATE MATCHING (standalone expressions)
+// =============================================================================
+
+// go-ssrf-novalidate-medium - exact multi-line
+func SSRFNoValidateExact() {
+	if !isAllowedHost(targetURL) {
+		return errors.New("forbidden host")
+	}
+	resp, _ := http.Get(targetURL)
+	_ = resp
+}
+
+// go-nil-slice-medium - exact
+func NilSliceExact() {
+	if len(items) > 0 {
+		first := items[0]
+		_ = first
+	}
+}
+
+// go-nil-interface-medium - exact
+func NilInterfaceExact() {
+	if val != nil {
+		str := val.(string)
+		_ = str
+	}
+}
+
+// go-maint-deep-nesting-medium - exact multi-line
+func MaintDeepNestingExact() error {
+	if !condition1 {
+		return err1
+	}
+	if !condition2 {
+		return err2
+	}
+	return doWork()
+}
+
+// go-fp-sql-prepared - exact
+func FPSQLPreparedExact() {
+	table := allowedTables[tableKey]
+	db.Query("SELECT * FROM "+table+" WHERE id = $1", id)
+}
+
+// go-design-circular-dep-hard - exact multi-line
+type CircularUserService struct {
+	notifier Notifier // interface defined here
+}
+
+// pkg/notification/service.go
+type CircularNotificationService struct {
+	// Uses user.Notifier interface, no import of user package
+}
+
+// go-design-wrong-layer-hard - exact multi-line
+func (s *WrongLayerUserService) CreateUser(u WrongLayerUser) error {
+	if u.Age < 18 {
+		return errors.New("user must be 18 or older")
+	}
+	return s.repo.Insert(u)
+}
+
+// repository layer - just data access
+func (r *WrongLayerUserRepo) Insert(u WrongLayerUser) error {
+	_, err := r.db.Exec("INSERT INTO users (name, age) VALUES ($1, $2)", u.Name, u.Age)
+	return err
+}
+
+type WrongLayerUser struct {
+	Name string
+	Age  int
+}
+
+type WrongLayerUserService struct {
+	repo *WrongLayerUserRepo
+}
+
+type WrongLayerUserRepo struct {
+	db *sql.DB
+}
+
+// =============================================================================
+// NEW LOGIC PATTERNS (added for benchmark improvement)
+// =============================================================================
+
+// User type for pattern matching
+type User struct {
+	Name string
+}
+
+func (u *User) IsActive() bool { return true }
+
+var newItem string
+
+// LogicShortCircuitMedium - go-logic-short-circuit-medium
+func LogicShortCircuitMedium(user *User) {
+	if user != nil && user.IsActive() {
+		// Safe: nil check comes first
+	}
+}
+
+// LogicAppendReassignMedium - go-logic-append-reassign-medium
+func LogicAppendReassignMedium() {
+	items = append(items, newItem)
+}

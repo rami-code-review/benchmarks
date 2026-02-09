@@ -1066,3 +1066,29 @@ async def fetch_all(urls):
         if isinstance(result, Exception):
             logger.error(f"Fetch failed: {result}")
     return [r for r in results if not isinstance(r, Exception)]
+
+
+# =============================================================================
+# NEW LOGIC AND MAINTAINABILITY PATTERNS (added for benchmark improvement)
+# =============================================================================
+
+STATUS_ACTIVE = "active"
+
+
+class User:
+    def __init__(self):
+        self.status = "active"
+
+
+# py-maint-magic-string-easy
+def check_user_status(user):
+    if user.status == STATUS_ACTIVE:
+        return True
+    return False
+
+
+# py-logic-none-check-easy
+def process_result(result):
+    if result is None:
+        return "No result"
+    return result
