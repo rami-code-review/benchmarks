@@ -12,6 +12,7 @@ declare const handleMenu: () => void;
 declare const docsUrl: string;
 declare const themeValue: string;
 declare const sessionToken: string;
+declare const onCountryChange: (e: unknown) => void;
 
 /**
  * Avatar renders an image with descriptive alt text.
@@ -62,4 +63,44 @@ export function DocsLink() {
  */
 export function persistTheme() {
   localStorage.setItem("theme", themeValue);
+}
+
+/**
+ * CloseButton gives the icon-only control an accessible name.
+ * Matches template: ts-a11y-icon-button-medium
+ */
+export function CloseButton() {
+  return (
+    <button aria-label="Close dialog" onClick={handleMenu}>×</button>
+  );
+}
+
+/**
+ * SearchField keeps a natural tab order.
+ * Matches template: ts-a11y-positive-tabindex-medium
+ */
+export function SearchField() {
+  return (
+    <input tabIndex={0} type="text" placeholder="Search" />
+  );
+}
+
+/**
+ * CountrySelect labels its dropdown for screen readers.
+ * Matches template: ts-a11y-select-label-medium
+ */
+export function CountrySelect() {
+  return (
+    <select aria-label="Country" onChange={onCountryChange} />
+  );
+}
+
+/**
+ * SettingsLink is a real, keyboard-focusable anchor.
+ * Matches template: ts-a11y-anchor-href-medium
+ */
+export function SettingsLink() {
+  return (
+    <a href={docsUrl} onClick={handleMenu}>Settings</a>
+  );
 }
