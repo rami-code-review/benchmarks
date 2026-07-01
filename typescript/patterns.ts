@@ -1353,3 +1353,8 @@ function checkValue(value: unknown) {
   }
   return null;
 }
+
+// ts-logic-tag-trim-missing-medium
+function normalizeTags(tags: string[]): string[] {
+  return tags.map((t) => t.trim()).filter((t) => t.length > 0);
+}

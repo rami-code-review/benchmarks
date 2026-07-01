@@ -5,9 +5,12 @@ Each function represents a template pattern for testing code review capabilities
 
 import logging
 import os
+from datetime import date
 from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+VALID_CATEGORIES = {"Food", "Rent", "Salary"}
 
 # Mock objects for pattern matching
 cursor = None
@@ -1092,3 +1095,16 @@ def process_result(result):
     if result is None:
         return "No result"
     return result
+
+
+# py-logic-datestr-lexical-medium
+def filter_transactions_from(txns, start):
+    start_date = date.fromisoformat(start)
+    return [t for t in txns if date.fromisoformat(t["date"]) >= start_date]
+
+
+# py-validation-missing-enum-medium
+def search_by_category(txns, category):
+    if category not in VALID_CATEGORIES:
+        raise ValueError("invalid category")
+    return [t for t in txns if t["category"] == category]
