@@ -345,3 +345,15 @@ typescript/patterns.ts,ts-test-no-assertion-easy,CWE-1055,test-quality,TP,easy,t
 typescript/patterns.ts,ts-test-implementation-detail-medium,CWE-1055,test-quality,TP,medium,typescript
 typescript/patterns.ts,ts-design-barrel-imports-medium,CWE-1047,design,TP,medium,typescript
 typescript/patterns.ts,ts-async-race-shared-state-hard,CWE-362,async,TP,hard,typescript
+go/reviewability_patterns.go,go-reviewability-duplicated-policy-hard,CWE-710,reviewability,FN,hard,go
+go/reviewability_patterns.go,go-reviewability-ownership-boundary-hard,CWE-710,reviewability,FN,hard,go
+go/reviewability_patterns.go,go-fp-reviewability-central-policy,CWE-710,false-positive,FP,medium,go
+typescript/reviewability_patterns.ts,ts-reviewability-parallel-state-medium,CWE-710,reviewability,FN,medium,typescript
+typescript/reviewability_patterns.ts,ts-reviewability-opaque-workflow-hard,CWE-710,reviewability,FN,hard,typescript
+typescript/reviewability_safe.ts,ts-fp-reviewability-derived-state,CWE-710,false-positive,FP,medium,typescript
+python/reviewability_patterns.py,py-reviewability-temporal-coupling-medium,CWE-710,reviewability,FN,medium,python
+python/reviewability_patterns.py,py-reviewability-divergent-policy-hard,CWE-710,reviewability,FN,hard,python
+python/reviewability_patterns.py,py-fp-reviewability-context-manager,CWE-710,false-positive,FP,medium,python
+java/reviewability_patterns.java,java-reviewability-hidden-invariant-medium,CWE-710,reviewability,FN,medium,java
+java/reviewability_patterns.java,java-reviewability-parallel-cache-hard,CWE-710,reviewability,FN,hard,java
+java/reviewability_patterns.java,java-fp-reviewability-typed-policy,CWE-710,false-positive,FP,medium,java

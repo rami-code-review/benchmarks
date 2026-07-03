@@ -2,6 +2,14 @@
 
 Source code samples for benchmarking Rami's code review quality. Based on OWASP Benchmark methodology with balanced true positive/false positive test cases.
 
+## About this repository
+
+Rami is a hosted AI code-review service. The **benchmark runner** that consumes these fixtures is part of that service — it is not distributed as a public binary, so you cannot clone this repository and run the benchmark yourself.
+
+What this repository *is*, then, is a transparent, public record of **how** Rami's review quality is measured: the exact code patterns we inject defects into, the ground truth we score against (`expectedresults.csv`), and the methodology behind it. It is meant to be read — as a reference corpus for anyone studying LLM code-review evaluation, and so our quality claims can be inspected rather than taken on faith.
+
+How the fixtures are used internally: the runner takes a defect template (an `OriginalCode` → `DefectiveCode` pair), finds the matching `OriginalCode` in these files, injects the defective version to synthesize a pull request, asks Rami to review it, and scores the findings against the injected ground truth.
+
 ## Structure
 
 ```
@@ -79,6 +87,7 @@ These categories differentiate LLM code review from traditional SAST tools (whic
 | Category | SAST Score | Description | Examples |
 |----------|------------|-------------|----------|
 | Design | ~0% | Architecture/design issues | God objects, circular dependencies, wrong patterns |
+| Reviewability | ~0% | Future-maintainer change risk | Hidden invariants, duplicated business rules, temporal coupling, parallel state, unclear ownership |
 | Test Quality | ~0% | Test code issues | No assertions, mocking SUT, flaky tests, misleading names |
 | Framework | ~10% | Framework misuse | React hooks violations, Express middleware errors, Django N+1 |
 | Async | ~5% | Async/concurrency reasoning | Goroutine leaks, race conditions, fire-and-forget promises |
