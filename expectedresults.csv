@@ -357,3 +357,12 @@ python/reviewability_patterns.py,py-fp-reviewability-context-manager,CWE-710,fal
 java/reviewability_patterns.java,java-reviewability-hidden-invariant-medium,CWE-710,reviewability,FN,medium,java
 java/reviewability_patterns.java,java-reviewability-parallel-cache-hard,CWE-710,reviewability,FN,hard,java
 java/reviewability_patterns.java,java-fp-reviewability-typed-policy,CWE-710,false-positive,FP,medium,java
+python/patterns.py,py-csv-formula-writerow-unsafe,CWE-1236,security,TP,medium,python
+python/patterns.py,py-csv-formula-join-unsafe,CWE-1236,security,TP,medium,python
+python/patterns.py,py-csv-formula-writerow-fix,CWE-1236,security,FP,medium,python
+python/patterns.py,py-csv-numeric-export-safe,CWE-1236,security,FP,medium,python
+python/patterns.py,py-csv-static-header-safe,CWE-1236,security,FP,hard,python
+go/patterns.go,go-slug-unvalidated-unsafe,CWE-20,security,TP,medium,go
+go/patterns.go,go-slug-unvalidated-fix,CWE-20,security,FP,medium,go
+go/patterns.go,go-slug-generated-safe,CWE-20,security,FP,medium,go
+go/patterns.go,go-slug-lookup-safe,CWE-20,security,FP,hard,go

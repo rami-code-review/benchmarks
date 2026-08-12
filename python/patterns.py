@@ -1092,3 +1092,69 @@ def process_result(result):
     if result is None:
         return "No result"
     return result
+
+
+# ---------------------------------------------------------------------------
+# CSV / spreadsheet formula injection (CWE-1236)
+#
+# The export writes stored user text straight into a cell. A value beginning
+# = + - @ (or tab / CR) is evaluated as a formula when the file is opened in
+# Excel or Sheets, so the payload executes on the reader's machine rather than
+# on the server. Nothing in the diff looks dangerous — there is no parser, no
+# eval, no query — which is exactly why this class gets missed.
+# ---------------------------------------------------------------------------
+
+
+def csv_formula_writerow_unsafe(rows, out):
+    """py-csv-formula-writerow-unsafe: UNSAFE user text into a CSV cell"""
+    import csv
+
+    writer = csv.writer(out)
+    writer.writerow(["id", "description"])
+    for row in rows:
+        # UNSAFE: a description of "=cmd|'/c calc'!A0" executes on open
+        writer.writerow([row["id"], row["description"]])
+
+
+def csv_formula_writerow_fix(rows, out):
+    """py-csv-formula-writerow-fix: leading formula characters neutralized"""
+    import csv
+
+    def neutralize(value: str) -> str:
+        if value and value[0] in ("=", "+", "-", "@", "\t", "\r"):
+            return "'" + value
+        return value
+
+    writer = csv.writer(out)
+    writer.writerow(["id", "description"])
+    for row in rows:
+        writer.writerow([row["id"], neutralize(row["description"])])
+
+
+def csv_formula_join_unsafe(records):
+    """py-csv-formula-join-unsafe: UNSAFE manual CSV assembly from user text"""
+    lines = ["name,note"]
+    for record in records:
+        # UNSAFE: hand-built row, same sink as csv.writer
+        lines.append("{},{}".format(record["name"], record["note"]))
+    return "\n".join(lines)
+
+
+def csv_numeric_export_safe(measurements, out):
+    """py-csv-numeric-export-safe: numeric cells cannot carry a formula"""
+    import csv
+
+    writer = csv.writer(out)
+    writer.writerow(["sample", "reading"])
+    for measurement in measurements:
+        # SAFE: both values are numbers, never attacker-controlled text
+        writer.writerow([int(measurement["sample"]), float(measurement["reading"])])
+
+
+def csv_static_header_safe(out):
+    """py-csv-static-header-safe: constant strings are not user input"""
+    import csv
+
+    writer = csv.writer(out)
+    # SAFE: every value is a literal defined in this file
+    writer.writerow(["=SUM(A1:A2)", "total"])

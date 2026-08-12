@@ -890,3 +890,75 @@ func LogicShortCircuitMedium(user *User) {
 func LogicAppendReassignMedium() {
 	items = append(items, newItem)
 }
+
+// ---------------------------------------------------------------------------
+// Unvalidated user-supplied route identifier (CWE-20)
+//
+// A caller chooses the short code the resource is served under. Stored without
+// a charset, length, or reserved-form check, values like "a/b", " ", "..", or
+// an unbounded string are accepted and returned as 201 with a short_url that
+// GET /{code} can never resolve, because ServeMux matches a single path
+// segment. The write succeeds and the read is permanently broken, so the defect
+// is at the write path even though the symptom appears at the read path.
+// ---------------------------------------------------------------------------
+
+var linkStore map[string]string
+
+// ShortCodeCreateUnsafe - go-slug-unvalidated-unsafe
+func ShortCodeCreateUnsafe(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
+	target := r.URL.Query().Get("target")
+	// UNSAFE: no charset, length, or reserved-form validation before storing
+	linkStore[code] = target
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, `{"short_url":"https://example.test/%s"}`, code)
+}
+
+// ShortCodeCreateFix - go-slug-unvalidated-fix
+func ShortCodeCreateFix(w http.ResponseWriter, r *http.Request) {
+	code := r.URL.Query().Get("code")
+	target := r.URL.Query().Get("target")
+	if !validShortCode(code) {
+		http.Error(w, "code must be 1-32 characters of [a-z0-9-]", http.StatusBadRequest)
+		return
+	}
+	linkStore[code] = target
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, `{"short_url":"https://example.test/%s"}`, code)
+}
+
+func validShortCode(code string) bool {
+	if len(code) == 0 || len(code) > 32 {
+		return false
+	}
+	for _, r := range code {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
+			return false
+		}
+	}
+	return true
+}
+
+// ShortCodeGeneratedSafe - go-slug-generated-safe
+func ShortCodeGeneratedSafe(w http.ResponseWriter, r *http.Request) {
+	target := r.URL.Query().Get("target")
+	// SAFE: the code is derived server-side, never taken from the caller
+	sum := sha256.Sum256([]byte(target))
+	code := fmt.Sprintf("%x", sum[:6])
+	linkStore[code] = target
+	w.WriteHeader(http.StatusCreated)
+}
+
+// ShortCodeLookupSafe - go-slug-lookup-safe
+func ShortCodeLookupSafe(w http.ResponseWriter, r *http.Request) {
+	// SAFE: reading an already-stored key validates nothing by design; the
+	// write path owns that check. Flagging here would blame the resolver for
+	// accepting what the writer stored.
+	code := strings.TrimPrefix(r.URL.Path, "/")
+	target, ok := linkStore[code]
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+	http.Redirect(w, r, target, http.StatusFound)
+}
