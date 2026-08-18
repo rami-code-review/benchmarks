@@ -992,3 +992,207 @@ Regex::new(r"^[a-zA-Z0-9]+$")?
 
 // rust-deser-untrusted-easy - standalone
 serde_json::from_str::<SafeType>(input)?
+
+
+pub mod fixture_command_runner {
+    use std::io;
+    use std::process::{Command, Output};
+
+    pub fn grep_in_file(pattern: &str, file: &str) -> io::Result<Output> {
+        let output = Command::new("grep")
+            .arg(pattern)
+            .arg(file)
+            .output()?;
+        Ok(output)
+    }
+
+    pub fn read_named_file(filename: &str) -> io::Result<String> {
+        if !filename.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '_' || c == '-') {
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, "Invalid filename"));
+        }
+        let output = Command::new("cat")
+            .arg(filename)
+            .output()?;
+        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    }
+}
+
+
+pub mod fixture_password_digest {
+    use sha2::digest::Output as DigestOutput;
+    use sha2::Sha256;
+
+    pub fn digest_password(password: &str) -> DigestOutput<Sha256> {
+        use sha2::{Sha256, Digest};
+        let mut hasher = Sha256::new();
+        hasher.update(password.as_bytes());
+        hasher.finalize()
+    }
+}
+
+
+pub mod fixture_asset_paths {
+    use std::fs;
+    use std::io;
+    use std::path::{Path, PathBuf};
+
+    pub fn read_asset(base_dir: &str, filename: &str) -> io::Result<Vec<u8>> {
+        let base = Path::new(base_dir).canonicalize()?;
+        let full_path = base.join(filename).canonicalize()?;
+        if !full_path.starts_with(&base) {
+            return Err(io::Error::new(
+                io::ErrorKind::PermissionDenied,
+                "Path traversal detected",
+            ));
+        }
+        fs::read(&full_path)
+    }
+
+    pub fn resolve_asset(base_dir: &str, filename: &str) -> Result<PathBuf, Box<dyn std::error::Error>> {
+        let base = Path::new(base_dir).canonicalize()?;
+        let full = base.join(filename).canonicalize()?;
+        if !full.starts_with(&base) {
+            return Err("Path traversal".into());
+        }
+        Ok(full)
+    }
+}
+
+
+pub mod fixture_user_search {
+    pub fn build_user_query(name: &str, status: &str) -> (String, Vec<String>) {
+        let mut query = "SELECT * FROM users WHERE 1=1".to_string();
+        let mut params = Vec::new();
+        let mut param_idx = 1;
+        if !name.is_empty() {
+            query.push_str(&format!(" AND name LIKE ${}", param_idx));
+            params.push(format!("%{}%", name));
+            param_idx += 1;
+        }
+        if !status.is_empty() {
+            query.push_str(&format!(" AND status = ${}", param_idx));
+            params.push(status.to_string());
+        }
+        (query, params)
+    }
+}
+
+
+pub mod fixture_upstream_fetch {
+    use reqwest::Response;
+
+    fn is_allowed_host(url: &str) -> bool {
+        url.starts_with("https://api.internal.example.com/")
+    }
+
+    pub async fn fetch_upstream(url: String) -> Result<Response, Box<dyn std::error::Error>> {
+        let response = {
+            if !is_allowed_host(&url) {
+                return Err("Host not allowed".into());
+            }
+            reqwest::get(&url).await?
+        };
+        Ok(response)
+    }
+}
+
+
+pub mod fixture_report_builder {
+    pub struct Record {
+        pub active: bool,
+        pub label: String,
+    }
+
+    fn process(record: &Record) {
+        let _ = &record.label;
+    }
+
+    pub fn report_active(items: &[Record]) {
+        items.iter().filter(|x| x.active).for_each(process);
+    }
+
+    pub fn join_labels(items: &[&str]) -> String {
+        let mut result = String::with_capacity(items.len() * 10);
+        for s in items {
+            result.push_str(s);
+        }
+        result
+    }
+}
+
+
+pub mod fixture_label_printer {
+    fn process(s: &str) { }
+
+    pub fn emit_label(data: String) {
+        process(&data);
+    }
+}
+
+
+pub mod fixture_scratch_writer {
+    use std::fs::File;
+    use std::io;
+    use std::path::Path;
+
+    pub fn create_scratch(path: &Path) -> io::Result<File> {
+        let file = File::create(path)?;
+        // File dropped automatically
+        Ok(file)
+    }
+}
+
+
+pub mod fixture_bounded_ffi {
+    extern "C" {
+        pub fn ffi_function(ptr: *const u8, len: usize);
+    }
+
+    pub unsafe fn call_bounded(ptr: *const u8, len: usize) {
+        // FFI requires unsafe but is properly bounded
+        unsafe { ffi_function(ptr, len) }
+    }
+}
+
+
+pub mod fixture_digit_matcher {
+    use regex::Regex;
+
+    pub fn digits_only() -> Regex {
+        // Regex is known valid at compile time
+        let re = Regex::new(r"^\d+$").unwrap();
+        re
+    }
+}
+
+
+pub mod fixture_first_byte {
+    pub fn peek_first(data: &[u8]) {
+        if !data.is_empty() {
+            let first = data[0]; // Safe after check
+        }
+    }
+}
+
+
+pub mod fixture_pattern_search {
+    use std::io;
+    use std::process::{Command, Output};
+
+    pub fn search(pattern: &str, file: &str) -> io::Result<Output> {
+        let output = {
+            Command::new("grep")
+                .arg(pattern)
+                .arg(file)
+                .output()?
+        };
+        Ok(output)
+    }
+}
+
+pub mod fixture_inline_processor {
+    pub fn run(data: String) {
+        fn process(s: &str) { }
+        process(&data);
+    }
+}

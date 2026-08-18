@@ -1180,6 +1180,9 @@ element.textContent = userInput
 // ts-xss-dangerously-easy - exact match (JSX)
 <div>{sanitize(userContent)}</div>
 
+// ts-xss-react-dangerous-unsafe - exact match (JSX)
+<div>{sanitize(userContent)}</div>
+
 // ts-xss-document-write-easy - exact match
 document.getElementById("output").textContent = data
 

@@ -1308,3 +1308,245 @@ class StringCompareExample
         return false;
     }
 }
+
+
+namespace Benchmarks.Archive
+{
+    using System.IO.Compression;
+    using System.Security;
+    using Microsoft.Extensions.Logging;
+
+    public class DocumentArchiveService
+    {
+        private const string BaseDir = "/var/lib/rami/archive";
+        private static readonly HttpClient Client = new HttpClient();
+
+        public string ReadArchivedDocument(string filename)
+        {
+            if (!Regex.IsMatch(filename, @"^[\w\-. ]+$"))
+            {
+                throw new ArgumentException("Invalid filename");
+            }
+            var basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "files");
+            var fullPath = Path.GetFullPath(Path.Combine(basePath, filename));
+            if (!fullPath.StartsWith(basePath))
+            {
+                throw new SecurityException("Path traversal detected");
+            }
+            return File.ReadAllText(fullPath);
+        }
+
+        public byte[] LoadArchiveBlob(string filename)
+        {
+            var basePath = Path.GetFullPath(BaseDir);
+            var fullPath = Path.GetFullPath(Path.Combine(basePath, filename));
+            if (!fullPath.StartsWith(basePath + Path.DirectorySeparatorChar))
+            {
+                throw new SecurityException("Path traversal detected");
+            }
+            return File.ReadAllBytes(fullPath);
+        }
+
+        public void ExtractEntry(ZipArchiveEntry entry, string destDir)
+        {
+            var destPath = Path.GetFullPath(Path.Combine(destDir, entry.FullName));
+            if (!destPath.StartsWith(Path.GetFullPath(destDir) + Path.DirectorySeparatorChar))
+                throw new IOException("Entry outside target dir");
+            entry.ExtractToFile(destPath);
+        }
+
+        public void SearchArchiveIndex(string pattern)
+        {
+            var psi = new ProcessStartInfo("grep", pattern);
+            Process.Start(psi);
+        }
+    }
+
+    public class ArchiveCryptoService
+    {
+        public byte[] EncryptManifest(byte[] key, byte[] data)
+        {
+            using var aes = Aes.Create();
+            aes.Key = key;
+            aes.Mode = CipherMode.CBC;
+            aes.GenerateIV();
+            using var encryptor = aes.CreateEncryptor();
+            var encrypted = encryptor.TransformFinalBlock(data, 0, data.Length);
+            return encrypted;
+        }
+
+        public byte[] LoadManifestKey()
+        {
+            var keyString = Environment.GetEnvironmentVariable("ENCRYPTION_KEY");
+            if (string.IsNullOrEmpty(keyString))
+            {
+                throw new SecurityException("Encryption key not configured");
+            }
+            var key = Convert.FromBase64String(keyString);
+            return key;
+        }
+
+        public string HashArchivePassword(string password)
+        {
+            using var rng = RandomNumberGenerator.Create();
+            var salt = new byte[16];
+            rng.GetBytes(salt);
+            using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 100000, HashAlgorithmName.SHA256);
+            var hash = pbkdf2.GetBytes(32);
+            return Convert.ToBase64String(salt) + ":" + Convert.ToBase64String(hash);
+        }
+
+        public void FillTokenBytes(byte[] bytes)
+        {
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(bytes);
+        }
+    }
+
+    public class ArchiveIngestWorker
+    {
+        private readonly ILogger<ArchiveIngestWorker> _logger;
+
+        public ArchiveIngestWorker(ILogger<ArchiveIngestWorker> logger)
+        {
+            _logger = logger;
+        }
+
+        public void IngestManifest(string path)
+        {
+            try
+            {
+                File.ReadAllText(path);
+            }
+            catch (IOException ex) {
+                _logger.LogError(ex, "IO error");
+            }
+        }
+
+        public void PublishManifest(string path)
+        {
+            try
+            {
+                File.Copy(path, path + ".published");
+            }
+            catch (Exception ex) {
+                _logger.LogError(ex, "Operation failed");
+                throw;
+            }
+        }
+    }
+
+    public class ArchiveStorageGateway
+    {
+        public byte[] LoadArchiveFile(string path)
+        {
+            using var stream = new FileStream(path, FileMode.Open);
+            return ReadAll(stream);
+        }
+
+        public void OpenCatalogConnection(string connString)
+        {
+            using var conn = new SqlConnection(connString);
+            // use connection
+        }
+
+        public DataTable FindCatalogEntry(SqlConnection conn, string name)
+        {
+            var cmd = new SqlCommand("SELECT * FROM Users WHERE Name = @name", conn);
+            cmd.Parameters.AddWithValue("@name", name);
+            var adapter = new SqlDataAdapter(cmd);
+            var table = new DataTable();
+            adapter.Fill(table);
+            return table;
+        }
+
+        private byte[] ReadAll(Stream stream)
+        {
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
+        }
+    }
+
+    public class ArchiveIndexFormatter
+    {
+        public string JoinIndexEntries(string[] items)
+        {
+            var sb = new StringBuilder();
+            foreach (var s in items) sb.Append(s);
+            return sb.ToString();
+        }
+
+        public string SerializeIndexPayload(object data)
+        {
+            var json = JsonConvert.SerializeObject(data, new JsonSerializerSettings {
+                StringEscapeHandling = StringEscapeHandling.EscapeHtml
+            });
+            return json;
+        }
+    }
+
+    public class ArchiveNumericScanner
+    {
+        private static readonly Regex Pattern = new Regex(@"\d+", RegexOptions.Compiled);
+        foreach (var s in items) {
+            if (Pattern.IsMatch(s)) { }
+        }
+    }
+
+    public class ArchiveFetchService
+    {
+        private static readonly HttpClient Client = new HttpClient();
+
+        public async Task<string> FetchArchiveMetadata(string targetUrl)
+        {
+            if (!IsAllowedHost(targetUrl))
+            {
+                throw new SecurityException("URL not allowed");
+            }
+            using var client = new HttpClient();
+            return await client.GetStringAsync(targetUrl);
+        }
+
+        public async Task<string> FetchArchiveManifest(string url)
+        {
+            var uri = new Uri(url);
+            var allowedHosts = new HashSet<string> { "api.example.com", "cdn.example.com" };
+            if (!allowedHosts.Contains(uri.Host))
+            {
+                throw new SecurityException("Host not allowed: " + uri.Host);
+            }
+            return await Client.GetStringAsync(url);
+        }
+
+        private bool IsAllowedHost(string targetUrl)
+        {
+            return Uri.TryCreate(targetUrl, UriKind.Absolute, out var parsed)
+                && parsed.Host == "api.example.com";
+        }
+    }
+
+    public class ArchiveCatalogQueries
+    {
+        private static readonly Dictionary<string, string> AllowedTables = new Dictionary<string, string>
+        {
+            { "users", "Users" },
+            { "orders", "Orders" }
+        };
+
+        public void SelectFromAllowedTable(SqlCommand cmd, string tableKey)
+        {
+            var table = AllowedTables[tableKey];
+            cmd.CommandText = "SELECT * FROM " + table;
+        }
+    }
+
+    public class ArchiveSessionController : Controller
+    {
+        public IActionResult CompleteSignIn(string returnUrl)
+        {
+            if (Url.IsLocalUrl(returnUrl)) return Redirect(returnUrl);
+            return RedirectToAction("Index");
+        }
+    }
+}
