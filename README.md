@@ -4,15 +4,15 @@ Clean, safe source files that [Rami](https://rami.reviews) injects known defects
 
 ## Why this repository is public
 
-The benchmark runner is part of Rami's hosted service and is not distributed, so you cannot clone this and reproduce a score.
+The tooling that consumes these fixtures is part of Rami's hosted service and is not distributed, so you cannot clone this and reproduce a score.
 
 What you *can* do is read the test set. Every defect Rami grades itself against is here, in plain source, with its ground truth in `expectedresults.csv`. A benchmark is only as honest as the cases it runs, and those are the easiest thing for a vendor to quietly stack. Publishing them means our quality claims can be inspected rather than believed.
 
 ## How it works
 
-A defect template is an `OriginalCode` → `DefectiveCode` pair. The runner finds the original snippet in these files, swaps in the defective version to synthesize a pull request, asks Rami to review it, and scores the findings against what it injected.
+Each case pairs a safe snippet with a defective variant of it. Rami locates the safe snippet in these files, substitutes the defect, synthesizes a pull request from the result, reviews it, and scores what it found against what it planted.
 
-Some templates are the reverse: `OriginalCode == DefectiveCode`, safe code that looks suspicious. Those measure false positives — whether Rami stays quiet when nothing is wrong.
+Other cases invert that: the two variants are identical, safe code written to look alarming. Those measure false positives — whether Rami stays quiet when nothing is wrong.
 
 ## Coverage
 
