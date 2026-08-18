@@ -19,6 +19,12 @@ A false-positive case must be genuinely safe *and* superficially alarming. Safe 
 
 A multi-file case must keep its data flow traceable across files — that is the property under test.
 
+## corpus.json is generated
+
+Never hand-edit it. It is produced from the private case definitions and regenerated whenever the corpus is tagged, so an edit here is either overwritten or turns the published cases into a lie about what runs.
+
+It must describe the same corpus as the fixtures around it: regenerate and commit it in the same change that adds or alters a case, and stamp it with the tag being cut.
+
 ## Versioning
 
 Tag `vYYYYMMDD-N` after any content change. Results are only comparable within a tag.

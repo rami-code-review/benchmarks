@@ -6,13 +6,37 @@ Clean, safe source files that [Rami](https://rami.reviews) injects known defects
 
 The tooling that consumes these fixtures is part of Rami's hosted service and is not distributed, so you cannot clone this and reproduce a score.
 
-What you *can* do is read the test set. Every defect Rami grades itself against is here, in plain source, with its ground truth in `expectedresults.csv`. A benchmark is only as honest as the cases it runs, and those are the easiest thing for a vendor to quietly stack. Publishing them means our quality claims can be inspected rather than believed.
+What you *can* do is check the test set. A benchmark is only as honest as the cases it runs, and those are the easiest thing for a vendor to quietly stack — with a corpus of trivial one-token mutations, a high score means nothing. So both halves are here: the safe source in the language directories, and every defect injected into it in `corpus.json`.
 
 ## How it works
 
 Each case pairs a safe snippet with a defective variant of it. Rami locates the safe snippet in these files, substitutes the defect, synthesizes a pull request from the result, reviews it, and scores what it found against what it planted.
 
-Other cases invert that: the two variants are identical, safe code written to look alarming. Those measure false positives — whether Rami stays quiet when nothing is wrong.
+Other cases invert that: the code stays correct, or is rewritten into a different correct form, and the expected result is silence. Those measure false positives.
+
+## Checking the corpus yourself
+
+`corpus.json` carries all 484 cases — every one, unfiltered — each with the exact code before and after:
+
+```json
+{
+  "id": "sh-unsafe-rm-high",
+  "language": "shell",
+  "category": "security",
+  "severity": "High",
+  "difficulty": "medium",
+  "description": "Unquoted, unguarded rm -rf: an empty or unset $BUILD_DIR expands to 'rm -rf /dist'",
+  "safe_code": "rm -rf \"${BUILD_DIR:?}/dist\"",
+  "defective_code": "rm -rf $BUILD_DIR/dist",
+  "expects_no_finding": false
+}
+```
+
+`safe_code` appears verbatim in the fixture file for that language, so you can find it, apply the substitution by hand, and see the pull request Rami was asked to review. From there you can judge whether a case is a real defect or a token swap, whether the difficulty labels are honest, and how much of the corpus is made of the easy kind. 42 of the 484 are false-positive cases, flagged `expects_no_finding`.
+
+**What this does not establish.** That a published number came from this corpus, and that the scoring was fair. Both need the runner, which is not distributed. Read the cases and decide what a score against them would be worth — that judgment is the point, and it is the part we can hand you.
+
+For a stronger check, point Rami at your own repository and read the review.
 
 ## Coverage
 
