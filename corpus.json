@@ -1,6 +1,6 @@
 {
-  "corpus_version": "v20260818-1",
-  "total_cases": 484,
+  "corpus_version": "v20260818-2",
+  "total_cases": 475,
   "cases": [
     {
       "id": "cs-auth-timing-easy",
@@ -167,7 +167,7 @@
       "pattern": "false_positive_cmd",
       "description": "FALSE POSITIVE: Constant command",
       "safe_code": "Process.Start(\"notepad.exe\", \"readme.txt\");",
-      "defective_code": "Process.Start(\"notepad.exe\", \"readme.txt\");",
+      "defective_code": "var executable = \"notepad.exe\";\nProcess.Start(executable, \"readme.txt\");",
       "expects_no_finding": true
     },
     {
@@ -179,7 +179,7 @@
       "pattern": "false_positive_null",
       "description": "FALSE POSITIVE: Null validated in caller",
       "safe_code": "// Called only when user is non-null\npublic string GetName(User user) =\u003e user.Name;",
-      "defective_code": "// Called only when user is non-null\npublic string GetName(User user) =\u003e user.Name;",
+      "defective_code": "// Called only when user is non-null\npublic string GetName(User user)\n{\n    return user.Name;\n}",
       "expects_no_finding": true
     },
     {
@@ -191,7 +191,7 @@
       "pattern": "false_positive_sql",
       "description": "FALSE POSITIVE: SQL with allowlist",
       "safe_code": "var table = AllowedTables[tableKey];\ncmd.CommandText = \"SELECT * FROM \" + table;",
-      "defective_code": "var table = AllowedTables[tableKey];\ncmd.CommandText = \"SELECT * FROM \" + table;",
+      "defective_code": "var table = AllowedTables[tableKey];\nvar query = \"SELECT * FROM \" + table;\ncmd.CommandText = query;",
       "expects_no_finding": true
     },
     {
@@ -843,7 +843,7 @@
       "pattern": "false_positive_concurrency",
       "description": "FALSE POSITIVE: Select with timeout prevents goroutine leak",
       "safe_code": "select {\ncase result := \u003c-ch:\n\treturn result, nil\ncase \u003c-ctx.Done():\n\treturn \"\", ctx.Err()\n}",
-      "defective_code": "// Same - select with context cancellation prevents goroutine leak\nselect {\ncase result := \u003c-ch:\n\treturn result, nil\ncase \u003c-ctx.Done():\n\treturn \"\", ctx.Err()\n}",
+      "defective_code": "select {\ncase \u003c-ctx.Done():\n\treturn \"\", ctx.Err()\ncase result := \u003c-ch:\n\treturn result, nil\n}",
       "expects_no_finding": true
     },
     {
@@ -855,7 +855,7 @@
       "pattern": "false_positive_cmd",
       "description": "FALSE POSITIVE: Command with constant arguments",
       "safe_code": "cmd := exec.Command(\"sh\", \"-c\", \"echo hello\")\ncmd.Run()",
-      "defective_code": "// This is the SAME - constant string, no user input\ncmd := exec.Command(\"sh\", \"-c\", \"echo hello\")\ncmd.Run()",
+      "defective_code": "script := \"echo hello\"\ncmd := exec.Command(\"sh\", \"-c\", script)\ncmd.Run()",
       "expects_no_finding": true
     },
     {
@@ -972,7 +972,7 @@
       "pattern": "false_positive_goroutine_capture",
       "description": "FALSE POSITIVE: errgroup with local copy of loop variable (safe)",
       "safe_code": "g, ctx := errgroup.WithContext(ctx)\nfor _, url := range urls {\n\turl := url\n\tg.Go(func() error {\n\t\treturn fetch(ctx, url)\n\t})\n}\nreturn g.Wait()",
-      "defective_code": "// Same - url := url creates a local copy, safe for closure capture\ng, ctx := errgroup.WithContext(ctx)\nfor _, url := range urls {\n\turl := url\n\tg.Go(func() error {\n\t\treturn fetch(ctx, url)\n\t})\n}\nreturn g.Wait()",
+      "defective_code": "g, ctx := errgroup.WithContext(ctx)\nfor _, url := range urls {\n\ttarget := url\n\tg.Go(func() error {\n\t\treturn fetch(ctx, target)\n\t})\n}\nreturn g.Wait()",
       "expects_no_finding": true
     },
     {
@@ -984,7 +984,7 @@
       "pattern": "false_positive_goroutine_capture",
       "description": "FALSE POSITIVE: Loop variable passed as goroutine function argument (safe)",
       "safe_code": "for _, item := range items {\n\tgo func(it Item) {\n\t\tprocess(it)\n\t}(item)\n}",
-      "defective_code": "// Same - loop variable passed as function argument, captured by value\nfor _, item := range items {\n\tgo func(it Item) {\n\t\tprocess(it)\n\t}(item)\n}",
+      "defective_code": "for _, item := range items {\n\tgo func(current Item) {\n\t\tprocess(current)\n\t}(item)\n}",
       "expects_no_finding": true
     },
     {
@@ -996,7 +996,7 @@
       "pattern": "false_positive_goroutine_capture",
       "description": "FALSE POSITIVE: Loop index and value passed as goroutine arguments (safe)",
       "safe_code": "for i, v := range data {\n\tgo func(idx int, val string) {\n\t\tresults[idx] = transform(val)\n\t}(i, v)\n}",
-      "defective_code": "// Same - both index and value passed as arguments, safe capture\nfor i, v := range data {\n\tgo func(idx int, val string) {\n\t\tresults[idx] = transform(val)\n\t}(i, v)\n}",
+      "defective_code": "for i := 0; i \u003c len(data); i++ {\n\tgo func(idx int, val string) {\n\t\tresults[idx] = transform(val)\n\t}(i, data[i])\n}",
       "expects_no_finding": true
     },
     {
@@ -1008,7 +1008,7 @@
       "pattern": "false_positive_concurrency",
       "description": "FALSE POSITIVE: Proper mutex guard with defer unlock",
       "safe_code": "func (c *Cache) Set(key string, val interface{}) {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\tc.data[key] = val\n}",
-      "defective_code": "// Same - mutex with defer unlock is the standard safe pattern\nfunc (c *Cache) Set(key string, val interface{}) {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\tc.data[key] = val\n}",
+      "defective_code": "func (c *Cache) Set(key string, value interface{}) {\n\tc.mu.Lock()\n\tdefer c.mu.Unlock()\n\tc.data[key] = value\n}",
       "expects_no_finding": true
     },
     {
@@ -1020,7 +1020,7 @@
       "pattern": "false_positive_nil",
       "description": "FALSE POSITIVE: Nil checked in caller",
       "safe_code": "// Called only when user is non-nil per contract\nfunc processUser(user *User) string {\n\treturn user.Name\n}",
-      "defective_code": "// Same code - nil check is in caller, this is valid\nfunc processUser(user *User) string {\n\treturn user.Name\n}",
+      "defective_code": "// Called only when user is non-nil per contract\nfunc processUser(user *User) string { return user.Name }",
       "expects_no_finding": true
     },
     {
@@ -1044,7 +1044,7 @@
       "pattern": "false_positive_sql",
       "description": "FALSE POSITIVE: SQL with dynamic table name from allowlist",
       "safe_code": "table := allowedTables[tableKey]\ndb.Query(\"SELECT * FROM \"+table+\" WHERE id = $1\", id)",
-      "defective_code": "// This is the SAME as original - should NOT be flagged\ntable := allowedTables[tableKey]\ndb.Query(\"SELECT * FROM \"+table+\" WHERE id = $1\", id)",
+      "defective_code": "table := allowedTables[tableKey]\nquery := \"SELECT * FROM \" + table + \" WHERE id = $1\"\ndb.Query(query, id)",
       "expects_no_finding": true
     },
     {
@@ -1056,7 +1056,7 @@
       "pattern": "false_positive_concurrency",
       "description": "FALSE POSITIVE: sync.Once for safe lazy initialization",
       "safe_code": "var (\n\tinstance *Client\n\tonce     sync.Once\n)\n\nfunc GetClient() *Client {\n\tonce.Do(func() {\n\t\tinstance = \u0026Client{}\n\t})\n\treturn instance\n}",
-      "defective_code": "// Same - sync.Once guarantees thread-safe single initialization\nvar (\n\tinstance *Client\n\tonce     sync.Once\n)\n\nfunc GetClient() *Client {\n\tonce.Do(func() {\n\t\tinstance = \u0026Client{}\n\t})\n\treturn instance\n}",
+      "defective_code": "var instance *Client\n\nvar once sync.Once\n\nfunc GetClient() *Client {\n\tonce.Do(func() {\n\t\tinstance = \u0026Client{}\n\t})\n\treturn instance\n}",
       "expects_no_finding": true
     },
     {
@@ -1862,7 +1862,7 @@
       "difficulty": "easy",
       "pattern": "weak_crypto",
       "description": "Weak MD5 hash for password in Java",
-      "safe_code": "SecureRandom random = new SecureRandom();\nbyte[] salt = new byte[16];\nrandom.nextBytes(salt);\nMessageDigest md = MessageDigest.getInstance(\"SHA-256\");\nmd.update(salt);\nreturn md.digest(password.getBytes());",
+      "safe_code": "MessageDigest md = MessageDigest.getInstance(\"SHA-256\");\nmd.update(salt);\nreturn md.digest(password.getBytes());",
       "defective_code": "MessageDigest md = MessageDigest.getInstance(\"MD5\");\nreturn md.digest(password.getBytes());",
       "expects_no_finding": false
     },
@@ -2163,7 +2163,7 @@
       "pattern": "false_positive_cmd",
       "description": "FALSE POSITIVE: Constant command",
       "safe_code": "Runtime.getRuntime().exec(\"ls -la /tmp\");",
-      "defective_code": "Runtime.getRuntime().exec(\"ls -la /tmp\");",
+      "defective_code": "String command = \"ls -la /tmp\";\nRuntime.getRuntime().exec(command);",
       "expects_no_finding": true
     },
     {
@@ -2175,7 +2175,7 @@
       "pattern": "false_positive_reflection",
       "description": "FALSE POSITIVE: Reflection with constant",
       "safe_code": "Class.forName(\"com.myapp.MyClass\");",
-      "defective_code": "Class.forName(\"com.myapp.MyClass\");",
+      "defective_code": "String className = \"com.myapp.MyClass\";\nClass.forName(className);",
       "expects_no_finding": true
     },
     {
@@ -2199,7 +2199,7 @@
       "pattern": "false_positive_sql",
       "description": "FALSE POSITIVE: SQL with allowlist",
       "safe_code": "String table = ALLOWED_TABLES.get(tableKey);\nstmt.executeQuery(\"SELECT * FROM \" + table);",
-      "defective_code": "String table = ALLOWED_TABLES.get(tableKey);\nstmt.executeQuery(\"SELECT * FROM \" + table);",
+      "defective_code": "String table = ALLOWED_TABLES.get(tableKey);\nString query = \"SELECT * FROM \" + table;\nstmt.executeQuery(query);",
       "expects_no_finding": true
     },
     {
@@ -2775,7 +2775,7 @@
       "pattern": "false_positive_eval",
       "description": "FALSE POSITIVE: JSON.parse is safe",
       "safe_code": "const data = JSON.parse(input)",
-      "defective_code": "const data = JSON.parse(input)",
+      "defective_code": "// Turn the payload text into an object.\nconst data = JSON.parse(input)",
       "expects_no_finding": true
     },
     {
@@ -2787,7 +2787,7 @@
       "pattern": "false_positive_cmd",
       "description": "FALSE POSITIVE: exec with constant",
       "safe_code": "exec(\"ls -la\", callback)",
-      "defective_code": "exec(\"ls -la\", callback)",
+      "defective_code": "const command = \"ls -la\"\nexec(command, callback)",
       "expects_no_finding": true
     },
     {
@@ -2799,7 +2799,7 @@
       "pattern": "false_positive_xss",
       "description": "FALSE POSITIVE: innerHTML with constant",
       "safe_code": "element.innerHTML = \"\u003cspan\u003eLoading...\u003c/span\u003e\"",
-      "defective_code": "element.innerHTML = \"\u003cspan\u003eLoading...\u003c/span\u003e\"",
+      "defective_code": "const loadingMarkup = \"\u003cspan\u003eLoading...\u003c/span\u003e\"\nelement.innerHTML = loadingMarkup",
       "expects_no_finding": true
     },
     {
@@ -3266,8 +3266,8 @@
       "difficulty": "medium",
       "pattern": "insecure_deserialization",
       "description": "Arbitrary code execution via marshal.loads",
-      "safe_code": "return json.loads(data)",
-      "defective_code": "return marshal.loads(data)",
+      "safe_code": "return json.loads(cached_blob)",
+      "defective_code": "return marshal.loads(cached_blob)",
       "expects_no_finding": false
     },
     {
@@ -3391,18 +3391,6 @@
       "expects_no_finding": false
     },
     {
-      "id": "py-err-bare-except-unsafe",
-      "language": "python",
-      "category": "error-handling",
-      "severity": "High",
-      "difficulty": "easy",
-      "pattern": "bare_except",
-      "description": "Bare except catches SystemExit (unsafe)",
-      "safe_code": "except ValueError as e:\n    logger.error(f\"Invalid value: {e}\")\n    raise",
-      "defective_code": "except:\n    pass",
-      "expects_no_finding": false
-    },
-    {
       "id": "py-err-broad-except-easy",
       "language": "python",
       "category": "error-handling",
@@ -3487,7 +3475,7 @@
       "pattern": "false_positive_sql",
       "description": "FALSE POSITIVE: Format with validated enum",
       "safe_code": "order_by = validated_columns[sort_key]  # Only allows known columns\ncursor.execute(f\"SELECT * FROM users ORDER BY {order_by}\")",
-      "defective_code": "# Same - order_by is from validated allowlist, not user input\norder_by = validated_columns[sort_key]\ncursor.execute(f\"SELECT * FROM users ORDER BY {order_by}\")",
+      "defective_code": "order_by = validated_columns[sort_key]  # Only allows known columns\nquery = f\"SELECT * FROM users ORDER BY {order_by}\"\ncursor.execute(query)",
       "expects_no_finding": true
     },
     {
@@ -3499,7 +3487,7 @@
       "pattern": "false_positive_deser",
       "description": "FALSE POSITIVE: json.loads is safe",
       "safe_code": "data = json.loads(user_input)",
-      "defective_code": "data = json.loads(user_input)",
+      "defective_code": "# Decode the incoming payload into a dict.\ndata = json.loads(user_input)",
       "expects_no_finding": true
     },
     {
@@ -3523,7 +3511,7 @@
       "pattern": "false_positive_cmd",
       "description": "FALSE POSITIVE: Subprocess with constant args",
       "safe_code": "subprocess.run([\"ls\", \"-la\", \"/tmp\"], check=True)",
-      "defective_code": "subprocess.run([\"ls\", \"-la\", \"/tmp\"], check=True)",
+      "defective_code": "listing_argv = [\"ls\", \"-la\", \"/tmp\"]\nsubprocess.run(listing_argv, check=True)",
       "expects_no_finding": true
     },
     {
@@ -3536,18 +3524,6 @@
       "description": "Lexical string comparison of date inputs silently drops valid in-range rows (HTTP 200, wrong data)",
       "safe_code": "    start_date = date.fromisoformat(start)\n    return [t for t in txns if date.fromisoformat(t[\"date\"]) \u003e= start_date]",
       "defective_code": "    return [t for t in txns if t[\"date\"] \u003e= start]",
-      "expects_no_finding": false
-    },
-    {
-      "id": "py-logic-is-comparison-unsafe",
-      "language": "python",
-      "category": "logic",
-      "severity": "Medium",
-      "difficulty": "easy",
-      "pattern": "is_vs_equals",
-      "description": "Using 'is' for value comparison (unsafe)",
-      "safe_code": "if count == 1000:",
-      "defective_code": "if count is 1000:",
       "expects_no_finding": false
     },
     {
@@ -3608,18 +3584,6 @@
       "description": "Mutable default argument with type hints shared across calls",
       "safe_code": "def add_item(item: str, items: list[str] | None = None) -\u003e list[str]:\n    if items is None:\n        items = []\n    items.append(item)\n    return items",
       "defective_code": "def add_item(item: str, items: list[str] = []) -\u003e list[str]:\n    items.append(item)\n    return items",
-      "expects_no_finding": false
-    },
-    {
-      "id": "py-logic-mutable-default-unsafe",
-      "language": "python",
-      "category": "logic",
-      "severity": "High",
-      "difficulty": "easy",
-      "pattern": "mutable_default",
-      "description": "Mutable default argument (unsafe)",
-      "safe_code": "def append_item(item, items=None):\n    if items is None:\n        items = []\n    items.append(item)\n    return items",
-      "defective_code": "def append_item(item, items=[]):\n    items.append(item)\n    return items",
       "expects_no_finding": false
     },
     {
@@ -3692,18 +3656,6 @@
       "description": "Print statement used for debugging in production code",
       "safe_code": "def process_payment(order: Order) -\u003e Receipt:\n    logger.info(\"Processing payment for order %s\", order.id)\n    return gateway.charge(order)",
       "defective_code": "def process_payment(order: Order) -\u003e Receipt:\n    print(f\"Processing payment for order {order.id}\")\n    return gateway.charge(order)",
-      "expects_no_finding": false
-    },
-    {
-      "id": "py-null-attribute-unsafe",
-      "language": "python",
-      "category": "null-safety",
-      "severity": "High",
-      "difficulty": "easy",
-      "pattern": "none_dereference",
-      "description": "Attribute access on None (unsafe)",
-      "safe_code": "if user is not None:\n    return user.name\nreturn \"\"",
-      "defective_code": "return user.name",
       "expects_no_finding": false
     },
     {
@@ -3786,18 +3738,6 @@
       "difficulty": "easy",
       "pattern": "string_concat_loop",
       "description": "String concatenation in loop",
-      "safe_code": "result = \"\".join(items)",
-      "defective_code": "result = \"\"\nfor item in items:\n    result += item",
-      "expects_no_finding": false
-    },
-    {
-      "id": "py-perf-string-concat-unsafe",
-      "language": "python",
-      "category": "performance",
-      "severity": "Medium",
-      "difficulty": "easy",
-      "pattern": "string_concat_loop",
-      "description": "String concatenation in loop (unsafe)",
       "safe_code": "result = \"\".join(items)",
       "defective_code": "result = \"\"\nfor item in items:\n    result += item",
       "expects_no_finding": false
@@ -3917,9 +3857,9 @@
       "severity": "Blocking",
       "difficulty": "medium",
       "pattern": "sql_injection",
-      "description": "Django raw SQL with parameterized query (safe, should not flag)",
+      "description": "FALSE POSITIVE: Django raw SQL with parameterized query (safe, should not flag)",
       "safe_code": "with connection.cursor() as cursor:\n    cursor.execute(\n        \"SELECT * FROM products WHERE name LIKE %s\",\n        [f\"%{search}%\"]\n    )\n    return cursor.fetchall()",
-      "defective_code": "with connection.cursor() as cursor:\n    cursor.execute(\n        \"SELECT * FROM products WHERE name LIKE %s\",\n        [f\"%{search}%\"]\n    )\n    return cursor.fetchall()",
+      "defective_code": "with connection.cursor() as cursor:\n    cursor.execute(\n        \"SELECT * FROM products WHERE name LIKE %s\",\n        [f\"%{search}%\"],\n    )\n    return cursor.fetchall()",
       "expects_no_finding": true
     },
     {
@@ -4318,7 +4258,7 @@
       "pattern": "false_positive_index",
       "description": "FALSE POSITIVE: Index after length check",
       "safe_code": "if !data.is_empty() {\n    let first = data[0]; // Safe after check\n}",
-      "defective_code": "if !data.is_empty() {\n    let first = data[0]; // Safe after check\n}",
+      "defective_code": "let has_data = !data.is_empty();\nif has_data {\n    let first = data[0]; // Safe after check\n}",
       "expects_no_finding": true
     },
     {
@@ -4330,7 +4270,7 @@
       "pattern": "false_positive_unsafe",
       "description": "FALSE POSITIVE: Necessary FFI unsafe",
       "safe_code": "// FFI requires unsafe but is properly bounded\nunsafe { ffi_function(ptr, len) }",
-      "defective_code": "// FFI requires unsafe but is properly bounded\nunsafe { ffi_function(ptr, len) }",
+      "defective_code": "// FFI requires unsafe but is properly bounded\nunsafe {\n    ffi_function(ptr, len)\n}",
       "expects_no_finding": true
     },
     {
@@ -4342,7 +4282,7 @@
       "pattern": "false_positive_unwrap",
       "description": "FALSE POSITIVE: Unwrap on guaranteed Some",
       "safe_code": "// Regex is known valid at compile time\nlet re = Regex::new(r\"^\\d+$\").unwrap();",
-      "defective_code": "// Regex is known valid at compile time\nlet re = Regex::new(r\"^\\d+$\").unwrap();",
+      "defective_code": "// Regex is known valid at compile time\nlet pattern = r\"^\\d+$\";\nlet re = Regex::new(pattern).unwrap();",
       "expects_no_finding": true
     },
     {
@@ -4379,18 +4319,6 @@
       "description": "ReDoS vulnerable regex",
       "safe_code": "Regex::new(r\"^[a-zA-Z0-9]+$\")?",
       "defective_code": "Regex::new(r\"^(a+)+$\")?",
-      "expects_no_finding": false
-    },
-    {
-      "id": "rust-input-unchecked-easy",
-      "language": "rust",
-      "category": "null-safety",
-      "severity": "High",
-      "difficulty": "easy",
-      "pattern": "unchecked_index",
-      "description": "Unchecked array index",
-      "safe_code": "data.get(index).copied()",
-      "defective_code": "data[index]",
       "expects_no_finding": false
     },
     {
@@ -5109,8 +5037,8 @@
       "difficulty": "expert",
       "pattern": "false_positive_archetype_user_gated_growth",
       "description": "FALSE POSITIVE: recurrence without an end date is not unbounded growth; one successor is created per completion the user explicitly performs",
-      "safe_code": "export function scheduleSummary(task: Task): string {\n  const due = nextOccurrence(task)",
-      "defective_code": "export function scheduleSummary(task: Task): string {\n  // Summarize the next occurrence for display.\n  const due = nextOccurrence(task)",
+      "safe_code": "export function scheduleSummary(task: Task): string {",
+      "defective_code": "export function scheduleSummary(task: Task): string {\n  // Summarize the next occurrence for display.",
       "expects_no_finding": true,
       "supporting_files": [
         "task_completion_handler.ts"
@@ -5125,7 +5053,7 @@
       "pattern": "false_positive_cmd",
       "description": "FALSE POSITIVE: exec with constant",
       "safe_code": "exec(\"ls -la /tmp\", callback)",
-      "defective_code": "exec(\"ls -la /tmp\", callback)",
+      "defective_code": "const command = \"ls -la /tmp\";\nexec(command, callback);",
       "expects_no_finding": true
     },
     {
@@ -5137,7 +5065,7 @@
       "pattern": "false_positive_xss",
       "description": "FALSE POSITIVE: innerHTML with DOMPurify sanitization",
       "safe_code": "const clean = DOMPurify.sanitize(userInput);\nelement.innerHTML = clean;",
-      "defective_code": "// Same - properly sanitized before innerHTML\nconst clean = DOMPurify.sanitize(userInput);\nelement.innerHTML = clean;",
+      "defective_code": "const markup = DOMPurify.sanitize(userInput);\nelement.innerHTML = markup;",
       "expects_no_finding": true
     },
     {
@@ -5405,18 +5333,6 @@
       "expects_no_finding": false
     },
     {
-      "id": "ts-null-deref-unsafe",
-      "language": "typescript",
-      "category": "null-safety",
-      "severity": "High",
-      "difficulty": "easy",
-      "pattern": "null_dereference",
-      "description": "Null dereference (unsafe)",
-      "safe_code": "const name = user?.profile?.name ?? \"Unknown\"",
-      "defective_code": "const name = user.profile.name",
-      "expects_no_finding": false
-    },
-    {
       "id": "ts-null-invalid-date-serialize-medium",
       "language": "typescript",
       "category": "null-safety",
@@ -5426,18 +5342,6 @@
       "description": "toISOString throws RangeError on an Invalid Date once the validity guard is dropped",
       "safe_code": "  if (!isValidDate(task.dueDate)) {\n    return null\n  }\n  return task.dueDate.toISOString()",
       "defective_code": "  return task.dueDate ? task.dueDate.toISOString() : null",
-      "expects_no_finding": false
-    },
-    {
-      "id": "ts-null-non-null-assert-unsafe",
-      "language": "typescript",
-      "category": "null-safety",
-      "severity": "High",
-      "difficulty": "easy",
-      "pattern": "non_null_assertion",
-      "description": "Unsafe non-null assertion (unsafe)",
-      "safe_code": "const value = data?.result ?? defaultValue",
-      "defective_code": "const value = data!.result",
       "expects_no_finding": false
     },
     {
@@ -5810,18 +5714,6 @@
       "description": "XSS via innerHTML with template literal",
       "safe_code": "const div = document.createElement('div'); div.textContent = name;",
       "defective_code": "element.innerHTML = `\u003cdiv class=\"user\"\u003e${userName}\u003c/div\u003e`;",
-      "expects_no_finding": false
-    },
-    {
-      "id": "ts-xss-react-dangerous-unsafe",
-      "language": "typescript",
-      "category": "security",
-      "severity": "Blocking",
-      "difficulty": "medium",
-      "pattern": "xss",
-      "description": "XSS via dangerouslySetInnerHTML in React",
-      "safe_code": "\u003cdiv\u003e{sanitize(userContent)}\u003c/div\u003e",
-      "defective_code": "\u003cdiv dangerouslySetInnerHTML={{__html: userContent}} /\u003e",
       "expects_no_finding": false
     },
     {
