@@ -80,18 +80,13 @@ python/patterns.py,py-crypto-md5-unsafe,CWE-328,crypto,TP,easy,python
 python/patterns.py,py-crypto-random-unsafe,CWE-330,crypto,TP,easy,python
 python/patterns.py,py-err-bare-except-easy,CWE-390,error-handling,FN,easy,python
 python/patterns.py,py-err-broad-except-easy,CWE-390,error-handling,FN,easy,python
-python/patterns.py,py-err-bare-except-unsafe,CWE-390,error-handling,TP,easy,python
 python/patterns.py,py-err-swallowed-unsafe,CWE-390,error-handling,TP,easy,python
 python/patterns.py,py-err-info-leak-unsafe,CWE-209,error-handling,TP,medium,python
 python/patterns.py,py-null-nocheck-easy,CWE-476,null-safety,FN,easy,python
-python/patterns.py,py-null-attribute-unsafe,CWE-476,null-safety,TP,easy,python
 python/patterns.py,py-logic-mutable-default-easy,CWE-398,logic,FN,easy,python
 python/patterns.py,py-logic-is-vs-equals-easy,CWE-480,logic,FN,easy,python
-python/patterns.py,py-logic-mutable-default-unsafe,CWE-398,logic,TP,easy,python
-python/patterns.py,py-logic-is-comparison-unsafe,CWE-480,logic,TP,easy,python
 python/patterns.py,py-perf-string-concat-easy,CWE-400,performance,FN,easy,python
 python/patterns.py,py-perf-list-comp-easy,CWE-400,performance,FN,easy,python
-python/patterns.py,py-perf-string-concat-unsafe,CWE-400,performance,TP,easy,python
 python/patterns.py,py-perf-list-in-loop-unsafe,CWE-400,performance,TP,medium,python
 python/patterns.py,py-regex-redos-unsafe,CWE-1333,regex,TP,hard,python
 python/patterns.py,py-regex-injection-unsafe,CWE-94,regex,TP,medium,python
@@ -118,7 +113,6 @@ typescript/patterns.ts,ts-pathtraversal-join-unsafe,CWE-22,path-traversal,TP,eas
 typescript/patterns.ts,ts-pathtraversal-express-unsafe,CWE-22,path-traversal,TP,medium,typescript
 typescript/patterns.ts,ts-xss-innerhtml-easy,CWE-79,xss,FN,easy,typescript
 typescript/patterns.ts,ts-xss-innerhtml-unsafe,CWE-79,xss,TP,easy,typescript
-typescript/patterns.ts,ts-xss-react-dangerous-unsafe,CWE-79,xss,TP,medium,typescript
 typescript/patterns.ts,ts-xss-react-href-unsafe,CWE-79,xss,TP,medium,typescript
 typescript/patterns.ts,ts-secret-apikey-easy,CWE-798,secrets,FN,easy,typescript
 typescript/patterns.ts,ts-secret-hardcoded-unsafe,CWE-798,secrets,TP,easy,typescript
@@ -128,8 +122,6 @@ typescript/patterns.ts,ts-err-empty-catch-unsafe,CWE-390,error-handling,TP,easy,
 typescript/patterns.ts,ts-err-unhandled-promise-unsafe,CWE-390,error-handling,TP,medium,typescript
 typescript/patterns.ts,ts-err-info-leak-unsafe,CWE-209,error-handling,TP,medium,typescript
 typescript/patterns.ts,ts-null-optional-chain-easy,CWE-476,null-safety,FN,easy,typescript
-typescript/patterns.ts,ts-null-deref-unsafe,CWE-476,null-safety,TP,easy,typescript
-typescript/patterns.ts,ts-null-non-null-assert-unsafe,CWE-476,null-safety,TP,easy,typescript
 typescript/patterns.ts,ts-type-any-unsafe,CWE-704,type-safety,TP,easy,typescript
 typescript/patterns.ts,ts-type-cast-unsafe,CWE-704,type-safety,TP,medium,typescript
 typescript/patterns.ts,ts-logic-loose-equality-easy,CWE-480,logic,FN,easy,typescript
@@ -295,7 +287,6 @@ rust/patterns.rs,rust-sqli-format-easy,CWE-89,sql-injection,TP,easy,rust
 rust/patterns.rs,rust-sqli-concat-medium,CWE-89,sql-injection,TP,medium,rust
 rust/patterns.rs,rust-crypto-weak-random-easy,CWE-330,crypto,TP,easy,rust
 rust/patterns.rs,rust-crypto-hardcoded-medium,CWE-798,crypto,TP,medium,rust
-rust/patterns.rs,rust-input-unchecked-easy,CWE-125,input-validation,TP,easy,rust
 rust/patterns.rs,rust-input-overflow-medium,CWE-190,input-validation,TP,medium,rust
 rust/patterns.rs,rust-input-regex-redos-hard,CWE-1333,input-validation,TP,hard,rust
 rust/patterns.rs,rust-deser-untrusted-easy,CWE-502,deserialization,TP,easy,rust

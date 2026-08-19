@@ -3,6 +3,7 @@
 import hashlib
 import json
 import re
+from pathlib import Path
 import secrets
 import subprocess
 import urllib.request
@@ -57,3 +58,8 @@ def list_users_sorted(cursor, sort_key: str, validated_columns):
     order_by = validated_columns[sort_key]  # Only allows known columns
     cursor.execute(f"SELECT * FROM users ORDER BY {order_by}")
     return cursor.fetchall()
+
+
+def load_cached_document(cache_key: str, cache_dir: Path):
+    cached_blob = (cache_dir / f"{cache_key}.json").read_text()
+    return json.loads(cached_blob)
