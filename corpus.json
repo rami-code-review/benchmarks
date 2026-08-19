@@ -1,6 +1,6 @@
 {
-  "corpus_version": "v20260818-2",
-  "total_cases": 475,
+  "corpus_version": "v20260820-1",
+  "total_cases": 547,
   "cases": [
     {
       "id": "cs-auth-timing-easy",
@@ -771,6 +771,30 @@
       "expects_no_finding": false
     },
     {
+      "id": "go-err-audit-after-commit-hard",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "write_after_commit",
+      "description": "Regulator audit write moves after the commit and its failure is only logged, so a sold seat can exist with no audit row and nothing to roll back",
+      "safe_code": "if err := d.audit.Write(ctx, b.Ref, b.Seats); err != nil {\n\t_ = tx.Rollback()\n\treturn fmt.Errorf(\"audit sale %s: %w\", b.Ref, err)\n}\nreturn tx.Commit()",
+      "defective_code": "if err := tx.Commit(); err != nil {\n\treturn fmt.Errorf(\"commit sale %s: %w\", b.Ref, err)\n}\nif err := d.audit.Write(ctx, b.Ref, b.Seats); err != nil {\n\td.log.Errorf(\"audit sale %s: %v\", b.Ref, err)\n}\nreturn nil",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-bay-parse-discarded-medium",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "discarded_parse_error",
+      "description": "ParseInt error is dropped with the blank identifier, so an unparseable bay label silently becomes bay zero",
+      "safe_code": "bay, err := strconv.ParseInt(rawBay, 10, 32)\nif err != nil {\n\treturn 0, fmt.Errorf(\"parse bay %q: %w\", rawBay, err)\n}",
+      "defective_code": "bay, _ := strconv.ParseInt(rawBay, 10, 32)",
+      "expects_no_finding": false
+    },
+    {
       "id": "go-err-blank-easy",
       "language": "go",
       "category": "error-handling",
@@ -780,6 +804,42 @@
       "description": "Error assigned to blank identifier",
       "safe_code": "data, err := ioutil.ReadFile(path)\nif err != nil {\n\treturn nil, err\n}",
       "defective_code": "data, _ := ioutil.ReadFile(path)",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-confirm-detached-context-hard",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "Medium",
+      "difficulty": "hard",
+      "pattern": "detached_context",
+      "description": "Booking confirmation runs on context.Background rather than the request context, so a cancelled request still confirms the seat",
+      "safe_code": "if _, err := d.db.ExecContext(ctx, confirmBookingSQL, b.Ref, b.SailingID); err != nil {\n\treturn fmt.Errorf(\"confirm booking %s: %w\", b.Ref, err)\n}",
+      "defective_code": "if _, err := d.db.ExecContext(context.Background(), confirmBookingSQL, b.Ref, b.SailingID); err != nil {\n\treturn fmt.Errorf(\"confirm booking %s: %w\", b.Ref, err)\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-evict-message-drops-cause-easy",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "Medium",
+      "difficulty": "easy",
+      "pattern": "error_detail_discarded",
+      "description": "Eviction failure is rewritten as a static message, discarding the wrapped store error the operator needs",
+      "safe_code": "return fmt.Errorf(\"evict %s: %w\", plate, err)",
+      "defective_code": "return errors.New(\"vehicle could not be evicted\")",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-forecast-defer-body-in-loop-hard",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "defer_in_loop",
+      "description": "Forecast requests are inlined into the loop with a deferred body close, so connections accumulate until the whole fetch returns",
+      "safe_code": "doc, err := a.fetchOne(ctx, url)\nif err != nil {\n\treturn nil, fmt.Errorf(\"fetch forecast %s: %w\", url, err)\n}\ndocs = append(docs, doc)",
+      "defective_code": "req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)\nresp, err := a.client.Do(req)\nif err != nil {\n\treturn nil, fmt.Errorf(\"fetch forecast %s: %w\", url, err)\n}\ndefer resp.Body.Close()\ndoc, _ := io.ReadAll(resp.Body)\ndocs = append(docs, doc)",
       "expects_no_finding": false
     },
     {
@@ -795,6 +855,114 @@
       "expects_no_finding": false
     },
     {
+      "id": "go-err-ledger-after-commit-hard",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "write_after_commit",
+      "description": "Ledger entry is written after the transaction commits, so a ledger failure leaves an order nothing can roll back",
+      "safe_code": "if _, err := d.ledger.Record(ctx, LedgerEntry{OrderID: orderID, Cents: cents}); err != nil {\n\t_ = tx.Rollback(ctx)\n\treturn fmt.Errorf(\"ledger entry for %s: %w\", orderID, err)\n}\nreturn tx.Commit(ctx)",
+      "defective_code": "if err := tx.Commit(ctx); err != nil {\n\treturn fmt.Errorf(\"commit order %s: %w\", orderID, err)\n}\nif _, err := d.ledger.Record(ctx, LedgerEntry{OrderID: orderID, Cents: cents}); err != nil {\n\treturn fmt.Errorf(\"ledger entry for %s: %w\", orderID, err)\n}\nreturn nil",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-ledger-record-discarded-medium",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "discarded_error",
+      "description": "Both ledger return values are discarded, so a sale that never reached the ledger is logged as recorded",
+      "safe_code": "ref, err := d.ledger.Record(ctx, e)\nif err != nil {\n\treturn fmt.Errorf(\"record sale %s: %w\", e.OrderID, err)\n}\nd.log.Infof(\"sale %s recorded as %s\", e.OrderID, ref)",
+      "defective_code": "_, _ = d.ledger.Record(ctx, e)\nd.log.Infof(\"sale %s recorded\", e.OrderID)",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-manifest-defer-in-loop-hard",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "defer_in_loop",
+      "description": "Manifest files are opened and deferred inside the loop, so every handle stays open until the import finishes and the read error is discarded",
+      "safe_code": "rows, err := readManifest(path)\nif err != nil {\n\treturn nil, fmt.Errorf(\"read manifest %s: %w\", path, err)\n}\nisbns = append(isbns, rows...)",
+      "defective_code": "f, err := os.Open(path)\nif err != nil {\n\treturn nil, fmt.Errorf(\"open manifest %s: %w\", path, err)\n}\ndefer f.Close()\nrecords, _ := csv.NewReader(f).ReadAll()\nfor _, rec := range records {\n\tisbns = append(isbns, rec[0])\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-manifest-scan-logged-continue-medium",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "scan_error_logged_only",
+      "description": "Row scan failure logs and continues, so passengers drop off the sailing manifest without the caller ever learning the list is short",
+      "safe_code": "var ref string\nif err := rows.Scan(\u0026ref); err != nil {\n\treturn nil, fmt.Errorf(\"scan manifest row: %w\", err)\n}\nrefs = append(refs, ref)",
+      "defective_code": "var ref string\nif err := rows.Scan(\u0026ref); err != nil {\n\td.log.Errorf(\"scan manifest row: %v\", err)\n\tcontinue\n}\nrefs = append(refs, ref)",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-permit-lookup-swallowed-medium",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "lookup_error_as_absence",
+      "description": "Permit lookup failure is returned as a bare false, so a store outage is indistinguishable from a vehicle with no permit",
+      "safe_code": "p, err := d.permits.ByPlate(ctx, plate)\nif errors.Is(err, ErrPermitMissing) {\n\treturn false, nil\n}\nif err != nil {\n\treturn false, fmt.Errorf(\"load permit for %s: %w\", plate, err)\n}\nreturn p.Expires.After(now), nil",
+      "defective_code": "p, err := d.permits.ByPlate(ctx, plate)\nif err != nil {\n\treturn false, nil\n}\nreturn p.Expires.After(now), nil",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-permit-save-discarded-medium",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "discarded_error",
+      "description": "Permit write is discarded with the blank identifier, so a garage that never stored the permit reports the vehicle as admitted",
+      "safe_code": "if err := d.permits.Save(ctx, p); err != nil {\n\treturn fmt.Errorf(\"save permit %s: %w\", p.ID, err)\n}",
+      "defective_code": "_ = d.permits.Save(ctx, p)",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-reading-encode-discarded-medium",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "discarded_error",
+      "description": "Response encoding error is discarded with the blank identifier, so a truncated reading leaves no trace at all",
+      "safe_code": "if err := json.NewEncoder(w).Encode(r); err != nil {\n\ta.log.Errorf(\"encode reading for %s: %v\", r.StationID, err)\n}",
+      "defective_code": "_ = json.NewEncoder(w).Encode(r)",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-reading-message-drops-cause-easy",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "Medium",
+      "difficulty": "easy",
+      "pattern": "error_detail_discarded",
+      "description": "Reading lookup failure loses the wrapped scan error, so a schema drift and an absent station look identical in the logs",
+      "safe_code": "return Reading{}, fmt.Errorf(\"latest reading for station %s: %w\", stationID, err)",
+      "defective_code": "return Reading{}, fmt.Errorf(\"reading for station is unavailable\")",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-reserve-detached-context-medium",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "detached_context",
+      "description": "Reservation timeout is derived from context.Background instead of the caller's context, so an abandoned request keeps holding stock",
+      "safe_code": "lookupCtx, cancel := context.WithTimeout(ctx, 2*time.Second)\ndefer cancel()\ncount, err := d.catalogue.StockCount(lookupCtx, isbn)",
+      "defective_code": "lookupCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)\ndefer cancel()\ncount, err := d.catalogue.StockCount(lookupCtx, isbn)",
+      "expects_no_finding": false
+    },
+    {
       "id": "go-err-shadow-medium",
       "language": "go",
       "category": "error-handling",
@@ -804,6 +972,30 @@
       "description": "Error shadowed in inner scope",
       "safe_code": "if err := doSomething(); err != nil {\n\treturn err\n}",
       "defective_code": "if err := doSomething(); err != nil {\n\terr := handleError(err)\n\tlog.Println(err)\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-station-query-logged-continue-medium",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "query_error_logged_only",
+      "description": "Station query failure is logged and an empty list returned, so a database outage reads to the caller as no station reporting",
+      "safe_code": "rows, err := a.db.QueryContext(ctx, activeStationsSQL, since)\nif err != nil {\n\treturn nil, fmt.Errorf(\"query active stations: %w\", err)\n}",
+      "defective_code": "rows, err := a.db.QueryContext(ctx, activeStationsSQL, since)\nif err != nil {\n\ta.log.Errorf(\"query active stations: %v\", err)\n\treturn nil, nil\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-err-stock-lookup-swallowed-medium",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "lookup_error_as_absence",
+      "description": "Catalogue failure is reported as out of stock, so an unreachable catalogue removes every title from sale",
+      "safe_code": "count, err := d.catalogue.StockCount(ctx, isbn)\nif errors.Is(err, ErrTitleUnknown) {\n\treturn false, nil\n}\nif err != nil {\n\treturn false, fmt.Errorf(\"stock count for %s: %w\", isbn, err)\n}\nreturn count \u003e 0, nil",
+      "defective_code": "count, err := d.catalogue.StockCount(ctx, isbn)\nif err != nil {\n\treturn false, nil\n}\nreturn count \u003e 0, nil",
       "expects_no_finding": false
     },
     {
@@ -1108,6 +1300,18 @@
       "expects_no_finding": false
     },
     {
+      "id": "go-logic-berth-capacity-int32-hard",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "integer_truncation",
+      "description": "Configured foot-passenger limit is narrowed to int32 without a range check, so an oversized value wraps to a negative berth capacity",
+      "safe_code": "if cfg.MaxFootPassengers \u003e math.MaxInt32 || cfg.MaxFootPassengers \u003c 0 {\n\treturn fmt.Errorf(\"max_foot_passengers %d out of range\", cfg.MaxFootPassengers)\n}\nberth.Capacity = int32(cfg.MaxFootPassengers)",
+      "defective_code": "berth.Capacity = int32(cfg.MaxFootPassengers)",
+      "expects_no_finding": false
+    },
+    {
       "id": "go-logic-boolean-easy",
       "language": "go",
       "category": "logic",
@@ -1117,6 +1321,18 @@
       "description": "Wrong boolean operator (AND vs OR)",
       "safe_code": "if user.IsAdmin || user.HasPermission(resource) {",
       "defective_code": "if user.IsAdmin \u0026\u0026 user.HasPermission(resource) {",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-logic-calibration-linear-scan-medium",
+      "language": "go",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "linear_scan_in_loop",
+      "description": "Station offset is found by scanning the offset slice for every reading, making calibration O(readings*stations) instead of a single map lookup",
+      "safe_code": "byStation := make(map[string]float64, len(offsets))\nfor _, o := range offsets {\n\tbyStation[o.Station] = o.Metres\n}\nout := make([]Reading, 0, len(readings))\nfor _, r := range readings {\n\tr.Metres += byStation[r.Station]\n\tout = append(out, r)\n}",
+      "defective_code": "out := make([]Reading, 0, len(readings))\nfor _, r := range readings {\n\tfor _, o := range offsets {\n\t\tif o.Station == r.Station {\n\t\t\tr.Metres += o.Metres\n\t\t}\n\t}\n\tout = append(out, r)\n}",
       "expects_no_finding": false
     },
     {
@@ -1144,6 +1360,18 @@
       "expects_no_finding": false
     },
     {
+      "id": "go-logic-gauge-tab-delimiter-medium",
+      "language": "go",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "single_space_delimiter_assumption",
+      "description": "Gauge record is split on a single space, so the tab-separated feed leaves the timestamp glued to the reading and every parse fails",
+      "safe_code": "parts := strings.FieldsFunc(record, func(r rune) bool { return r == '\\t' || r == ' ' })\nif len(parts) \u003c 2 {\n\treturn time.Time{}, errors.New(\"gauge record has too few fields\")\n}",
+      "defective_code": "parts := strings.SplitN(record, \" \", 2)\nif len(parts) \u003c 2 {\n\treturn time.Time{}, errors.New(\"gauge record has too few fields\")\n}",
+      "expects_no_finding": false
+    },
+    {
       "id": "go-logic-goroutine-var-medium",
       "language": "go",
       "category": "logic",
@@ -1156,6 +1384,18 @@
       "expects_no_finding": false
     },
     {
+      "id": "go-logic-humidity-stale-copy-hard",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "stale_copy_comparison",
+      "description": "Rebalance decision is taken against the humidity captured before the new reading was stored, so the controller acts on the previous sample",
+      "safe_code": "previous := z.Humidity\nz.Humidity = reading\nif z.Humidity \u003e z.CeilingRH {\n\treturn \"vent\", previous\n}\nif z.Humidity \u003c z.FloorRH {\n\treturn \"mist\", previous\n}",
+      "defective_code": "previous := z.Humidity\nz.Humidity = reading\nif previous \u003e z.CeilingRH {\n\treturn \"vent\", previous\n}\nif previous \u003c z.FloorRH {\n\treturn \"mist\", previous\n}",
+      "expects_no_finding": false
+    },
+    {
       "id": "go-logic-int-overflow-medium",
       "language": "go",
       "category": "logic",
@@ -1165,6 +1405,42 @@
       "description": "Integer overflow on int64 to int32 conversion",
       "safe_code": "func safeConvert(v int64) (int32, error) {\n\tif v \u003e math.MaxInt32 || v \u003c math.MinInt32 {\n\t\treturn 0, errors.New(\"overflow\")\n\t}\n\treturn int32(v), nil\n}",
       "defective_code": "func safeConvert(v int64) int32 {\n\treturn int32(v)\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-logic-loan-days-int16-medium",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "integer_truncation",
+      "description": "Configured loan length is narrowed to int16 without a range check, so a long-loan policy wraps to a negative number of days",
+      "safe_code": "if cfg.LoanDays \u003e math.MaxInt16 || cfg.LoanDays \u003c 1 {\n\treturn fmt.Errorf(\"loan_days %d out of range\", cfg.LoanDays)\n}\nl.Days = int16(cfg.LoanDays)",
+      "defective_code": "l.Days = int16(cfg.LoanDays)",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-logic-manifest-page-bound-medium",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "off_by_one_loop_bound",
+      "description": "Paging loop stops one element early, so the final sailing is never placed on a manifest page",
+      "safe_code": "for start := 0; start \u003c len(sailings); start += pageSize {",
+      "defective_code": "for start := 0; start \u003c len(sailings)-1; start += pageSize {",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-logic-manifest-space-split-medium",
+      "language": "go",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "single_space_delimiter_assumption",
+      "description": "Manifest fields are split on a literal space, so a tab-separated line yields one field and the timestamp parse fails",
+      "safe_code": "fields := strings.Fields(line)\nif len(fields) \u003c 3 {\n\treturn time.Time{}, \"\", errors.New(\"manifest line too short\")\n}",
+      "defective_code": "fields := strings.Split(line, \" \")\nif len(fields) \u003c 3 {\n\treturn time.Time{}, \"\", errors.New(\"manifest line too short\")\n}",
       "expects_no_finding": false
     },
     {
@@ -1228,6 +1504,18 @@
       "expects_no_finding": false
     },
     {
+      "id": "go-logic-reference-capability-always-true-easy",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "easy",
+      "pattern": "capability_check_always_true",
+      "description": "CanBorrowReference returns true for every member, so suspended and public-tier patrons pass the reference-stock gate",
+      "safe_code": "return m.Tier == TierResearch \u0026\u0026 !m.Suspended",
+      "defective_code": "return true",
+      "expects_no_finding": false
+    },
+    {
       "id": "go-logic-short-circuit-medium",
       "language": "go",
       "category": "logic",
@@ -1249,6 +1537,54 @@
       "description": "Appending to a sub-slice can mutate the original when capacity allows",
       "safe_code": "func addDefaults(base []string) []string {\n\tresult := make([]string, len(base))\n\tcopy(result, base)\n\treturn append(result, \"default\")\n}",
       "defective_code": "func addDefaults(base []string) []string {\n\tresult := base[:len(base)]\n\treturn append(result, \"default\")\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-logic-spine-label-off-by-one-medium",
+      "language": "go",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "off_by_one_slice_bound",
+      "description": "Spine label slice stops one character short of the guarded width, so every truncated call number loses its last character",
+      "safe_code": "if len(callNumber) \u003c= labelWidth {\n\treturn callNumber\n}\nreturn callNumber[:labelWidth]",
+      "defective_code": "if len(callNumber) \u003c= labelWidth {\n\treturn callNumber\n}\nreturn callNumber[:labelWidth-1]",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-logic-surge-threshold-stale-copy-hard",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "stale_copy_comparison",
+      "description": "Reading is compared against the threshold copied before it was recomputed, so an allowance change takes effect one alert late",
+      "safe_code": "g.Threshold = g.BaseThreshold + g.SurgeAllowance\nif reading \u003e g.Threshold {\n\tg.ConsecutiveHigh++\n\treturn \"surge\"\n}",
+      "defective_code": "threshold := g.Threshold\ng.Threshold = g.BaseThreshold + g.SurgeAllowance\nif reading \u003e threshold {\n\tg.ConsecutiveHigh++\n\treturn \"surge\"\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-logic-venting-enabled-inverted-medium",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "inverted_boolean_predicate",
+      "description": "IsVentingEnabled answers true outside the vent window and false when venting is enabled, inverting the meaning of its own name",
+      "safe_code": "if hour \u003c v.OpenHour || hour \u003e= v.CloseHour {\n\treturn false\n}\nreturn v.Enabled",
+      "defective_code": "if hour \u003c v.OpenHour || hour \u003e= v.CloseHour {\n\treturn true\n}\nreturn !v.Enabled",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-logic-zone-sensor-linear-scan-medium",
+      "language": "go",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "linear_scan_in_loop",
+      "description": "Sensor lookup is a full scan inside the zone loop, making assignment O(zones*sensors) where an index built once is O(zones+sensors)",
+      "safe_code": "byZone := make(map[string]string, len(sensors))\nfor _, s := range sensors {\n\tbyZone[s.ZoneID] = s.ID\n}\nassigned := make(map[string]string, len(zones))\nfor _, z := range zones {\n\tif id, ok := byZone[z.ID]; ok {\n\t\tassigned[z.ID] = id\n\t}\n}",
+      "defective_code": "assigned := make(map[string]string, len(zones))\nfor _, z := range zones {\n\tfor _, s := range sensors {\n\t\tif s.ZoneID == z.ID {\n\t\t\tassigned[z.ID] = s.ID\n\t\t}\n\t}\n}",
       "expects_no_finding": false
     },
     {
@@ -1381,6 +1717,114 @@
       "description": "Index into potentially nil slice",
       "safe_code": "if len(items) \u003e 0 {\n\tfirst := items[0]\n\t_ = first\n}",
       "defective_code": "first := items[0]\n_ = first",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-null-dock-empty-index-medium",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "empty_slice_index",
+      "description": "First element is taken from the filtered dock slice without a length check, so a full station panics with an index out of range",
+      "safe_code": "free := availableDocks(docks)\nif len(free) == 0 {\n\treturn Dock{}, errors.New(\"station has no free dock\")\n}\nreturn free[0], nil",
+      "defective_code": "free := availableDocks(docks)\nreturn free[0], nil",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-null-exhibit-lookup-deref-medium",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "nil_dereference",
+      "description": "Exhibit pointer is dereferenced without checking the catalogue lookup returned a result, panicking on an unknown id",
+      "safe_code": "exhibit := c.Find(id)\nif exhibit == nil {\n\treturn \"\", fmt.Errorf(\"exhibit %s is not on display\", id)\n}\nreturn exhibit.Title, nil",
+      "defective_code": "exhibit := c.Find(id)\nreturn exhibit.Title, nil",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-null-fixture-grader-deref-medium",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "nil_dereference_in_test_helper",
+      "description": "Test helper dereferences the grader the base harvest fixture never populates, so the assertion panics instead of failing",
+      "safe_code": "if h.Grader == nil {\n\tt.Fatalf(\"harvest for block %s has no grader\", h.Block)\n}\nif h.Grader.Badge != want {\n\tt.Errorf(\"grader badge = %q, want %q\", h.Grader.Badge, want)\n}",
+      "defective_code": "if h.Grader.Badge != want {\n\tt.Errorf(\"grader badge = %q, want %q\", h.Grader.Badge, want)\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-null-leg-duration-easy",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "easy",
+      "pattern": "nil_dereference",
+      "description": "Closing leg is dereferenced directly instead of through the nil-tolerant accessor, panicking on a trip that ends away from a dock",
+      "safe_code": "return legDuration(l).Minutes()",
+      "defective_code": "return l.Duration.Minutes()",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-null-payload-assert-medium",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "unchecked_type_assertion",
+      "description": "Telemetry payload is asserted to string with the one-value form, so a nil or numeric payload panics instead of returning an error",
+      "safe_code": "label, ok := payload.(string)\nif !ok {\n\treturn \"\", errors.New(\"telemetry payload is not a sensor label\")\n}\nreturn label, nil",
+      "defective_code": "label := payload.(string)\nreturn label, nil",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-null-session-party-deref-medium",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "nil_field_dereference",
+      "description": "Session's party pointer is dereferenced before the desk clerk has entered a group, so a fresh session panics",
+      "safe_code": "if s.Party == nil {\n\treturn 1\n}\nreturn s.Party.Adults + s.Party.Children",
+      "defective_code": "return s.Party.Adults + s.Party.Children",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-null-slot-soldout-nil-hard",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "nil_dereference",
+      "description": "Timed-entry slot is dereferenced although the board answers nil once every remaining slot has sold out, not only for an unknown exhibit",
+      "safe_code": "slot := b.NextOpen(exhibitID)\nif slot == nil {\n\treturn 0, errors.New(\"no timed-entry slot is still open\")\n}\nreturn slot.Capacity - slot.Sold, nil",
+      "defective_code": "slot := b.NextOpen(exhibitID)\nreturn slot.Capacity - slot.Sold, nil",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-null-station-tag-map-write-medium",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "nil_map_write",
+      "description": "Station tag is written without the lazy map initialisation, so the first tag on a station panics on assignment to a nil map",
+      "safe_code": "if s.Tags == nil {\n\ts.Tags = make(map[string]string)\n}\ns.Tags[key] = value",
+      "defective_code": "s.Tags[key] = value",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-null-uncalibrated-sensor-hard",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "nil_dereference",
+      "description": "Calibration pointer is dereferenced although a registered sensor that no technician has walked yet has no entry on the bench",
+      "safe_code": "cal := b.CalibrationFor(r.SensorID)\nif cal == nil {\n\treturn 0, fmt.Errorf(\"sensor %s has no calibration on record\", r.SensorID)\n}\nreturn r.Celsius*cal.Scale + cal.Offset, nil",
+      "defective_code": "cal := b.CalibrationFor(r.SensorID)\nreturn r.Celsius*cal.Scale + cal.Offset, nil",
       "expects_no_finding": false
     },
     {
@@ -3659,6 +4103,30 @@
       "expects_no_finding": false
     },
     {
+      "id": "py-null-empty-firing-index-medium",
+      "language": "python",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "index_on_empty_filter",
+      "description": "First ready firing is indexed out of a comprehension that is empty whenever the kiln's queue holds nothing ready, raising IndexError",
+      "safe_code": "ready = [f for f in firings if f.kiln == kiln and f.ready]\nif not ready:\n    return None\nreturn ready[0]",
+      "defective_code": "ready = [f for f in firings if f.kiln == kiln and f.ready]\nreturn ready[0]",
+      "expects_no_finding": false
+    },
+    {
+      "id": "py-null-kiln-hold-key-medium",
+      "language": "python",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "missing_dict_key",
+      "description": "Optional kiln setting is read by direct subscript, raising KeyError for a studio that never set a hold time",
+      "safe_code": "if \"hold_minutes\" not in settings:\n    return 20\nreturn int(settings[\"hold_minutes\"])",
+      "defective_code": "return int(settings[\"hold_minutes\"])",
+      "expects_no_finding": false
+    },
+    {
       "id": "py-null-nocheck-easy",
       "language": "python",
       "category": "null-safety",
@@ -3668,6 +4136,18 @@
       "description": "Missing None check before attribute access",
       "safe_code": "if user is not None:\n    return user.name\nreturn \"\"",
       "defective_code": "return user.name",
+      "expects_no_finding": false
+    },
+    {
+      "id": "py-null-shelf-lookup-attr-medium",
+      "language": "python",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "none_attribute_access",
+      "description": "Attribute is read off the roster lookup result, which is None for a handle mistyped at the studio door",
+      "safe_code": "member = roster.find(handle)\nif member is None:\n    raise LookupError(f\"no studio member with handle {handle}\")\nreturn member.shelf",
+      "defective_code": "member = roster.find(handle)\nreturn member.shelf",
       "expects_no_finding": false
     },
     {
@@ -4514,6 +4994,54 @@
       "expects_no_finding": false
     },
     {
+      "id": "sh-logic-attempt-count-string-compare-medium",
+      "language": "shell",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "string_compare_for_numeric",
+      "description": "String equality inside [[ ]] compares the attempt counter textually, so a zero-padded count never reaches its budget",
+      "safe_code": "if [[ \"$attempt_count\" -eq \"$max_attempts\" ]]; then",
+      "defective_code": "if [[ \"$attempt_count\" = \"$max_attempts\" ]]; then",
+      "expects_no_finding": false
+    },
+    {
+      "id": "sh-logic-beacon-hardcoded-host-medium",
+      "language": "shell",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "hardcoded_environment_host",
+      "description": "The reachability check is pinned to a fixed deployment host, so every environment probes the same endpoint",
+      "safe_code": "local host=\"${BEACON_HOST:?BEACON_HOST must be set}\"",
+      "defective_code": "local host=\"beacon.prod.example.com\"",
+      "expects_no_finding": false
+    },
+    {
+      "id": "sh-logic-gate-iterator-unquoted-easy",
+      "language": "shell",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "easy",
+      "pattern": "unquoted_loop_iterator",
+      "description": "Unquoted array expansion in the loop header word-splits gate names, so a two-word gate is cycled as two gates",
+      "safe_code": "for gate in \"${gate_ids[@]}\"; do",
+      "defective_code": "for gate in ${gate_ids[@]}; do",
+      "expects_no_finding": false
+    },
+    {
+      "id": "sh-logic-pipeline-status-wrong-command-hard",
+      "language": "shell",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "pipeline_status_wrong_command",
+      "description": "The status check reads $? , which is gzip's exit code, so a failed log dump is archived as a valid empty gzip stream",
+      "safe_code": "lock_log_dump \"$lock_name\" | gzip -9 \u003e \"$archive\"\nif [[ \"${PIPESTATUS[0]}\" -ne 0 ]]; then",
+      "defective_code": "lock_log_dump \"$lock_name\" | gzip -9 \u003e \"$archive\"\nif [[ \"$?\" -ne 0 ]]; then",
+      "expects_no_finding": false
+    },
+    {
       "id": "sh-masked-pipe-failure-hard",
       "language": "shell",
       "category": "error-handling",
@@ -4946,6 +5474,30 @@
       "expects_no_finding": false
     },
     {
+      "id": "ts-err-booking-message-match-medium",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "error_discriminated_by_message",
+      "description": "Failure kinds are told apart by substring matching on the message, so any reworded upstream error silently falls through to the generic copy",
+      "safe_code": "if (error instanceof SlotFullError) {\n  return 'That time slot is fully booked.'\n}\nif (error instanceof PaymentDeclinedError) {\n  return 'Your card was declined.'\n}",
+      "defective_code": "const message = error instanceof Error ? error.message : ''\nif (message.includes('slot full')) {\n  return 'That time slot is fully booked.'\n}\nif (message.includes('declined')) {\n  return 'Your card was declined.'\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-err-confirmation-not-awaited-hard",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "missing_await",
+      "description": "Confirmation send is not awaited and carries no handler, so its rejection escapes as an unhandled rejection after the reservation is returned",
+      "safe_code": "const reservation = await api.createReservation(visitorId, slotId)\ntry {\n  await api.sendConfirmation(reservation.id)\n} catch (error) {\n  logger.warn('confirmation was not sent for ' + reservation.id, error)\n}\nreturn reservation",
+      "defective_code": "const reservation = await api.createReservation(visitorId, slotId)\napi.sendConfirmation(reservation.id)\nreturn reservation",
+      "expects_no_finding": false
+    },
+    {
       "id": "ts-err-empty-catch-easy",
       "language": "typescript",
       "category": "error-handling",
@@ -4970,6 +5522,30 @@
       "expects_no_finding": false
     },
     {
+      "id": "ts-err-floorplan-status-dropped-medium",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "http_error_detail_discarded",
+      "description": "Rejected upload throws a bare message, discarding the status and response body that distinguish a too-large file from an expired session",
+      "safe_code": "if (!response.ok) {\n  throw new TicketApiError(\n    'floor plan was rejected with status ' + response.status,\n    response.status,\n    await response.text(),\n  )\n}",
+      "defective_code": "if (!response.ok) {\n  throw new Error('upload failed')\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-err-humidity-invalid-passthrough-easy",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "easy",
+      "pattern": "invalid_input_returned_unchanged",
+      "description": "Out-of-range humidity is returned unchanged instead of rejected, so NaN and impossible readings flow into the zone averages",
+      "safe_code": "if (!Number.isFinite(value) || value \u003c 0 || value \u003e 100) {\n  throw new RangeError('humidity ' + raw + ' is outside the 0-100 range')\n}",
+      "defective_code": "if (!Number.isFinite(value) || value \u003c 0 || value \u003e 100) {\n  return value\n}",
+      "expects_no_finding": false
+    },
+    {
       "id": "ts-err-info-leak-unsafe",
       "language": "typescript",
       "category": "error-handling",
@@ -4982,6 +5558,42 @@
       "expects_no_finding": false
     },
     {
+      "id": "ts-err-recipe-delete-swallowed-easy",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "easy",
+      "pattern": "swallowed_catch",
+      "description": "Delete failure is caught with no logging and no user feedback, so the recipe stays on the shelf and the visitor is told nothing",
+      "safe_code": "} catch (error) {\n  this.logger.error('delete recipe ' + id + ' failed', error)\n  onFailure('That recipe could not be deleted. Please try again.')\n}",
+      "defective_code": "} catch (error) {\n  return\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-err-recipe-status-discarded-medium",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "http_error_detail_discarded",
+      "description": "Failed recipe load throws a generic Error, discarding the HTTP status and body that say whether it was a 404 or a 500",
+      "safe_code": "if (!response.ok) {\n  const body = await response.text()\n  throw new RecipeApiError('recipe ' + id + ' could not be loaded', response.status, body)\n}",
+      "defective_code": "if (!response.ok) {\n  throw new Error('Request failed')\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-err-search-parse-vs-network-hard",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "parse_and_transport_conflated",
+      "description": "One catch spans the fetch and the JSON parse, so a malformed payload and an unreachable host raise the same untyped error",
+      "safe_code": "let response: Response\ntry {\n  response = await fetch(this.baseUrl + '/search?q=' + encodeURIComponent(query))\n} catch (error) {\n  throw new RecipeApiError('recipe search is unreachable', 0, String(error))\n}\nconst raw = await response.text()\ntry {\n  return JSON.parse(raw) as Recipe[]\n} catch (error) {\n  throw new RecipeParseError('recipe search returned malformed JSON', error)\n}",
+      "defective_code": "try {\n  const response = await fetch(this.baseUrl + '/search?q=' + encodeURIComponent(query))\n  return JSON.parse(await response.text()) as Recipe[]\n} catch (error) {\n  throw new Error('recipe search failed')\n}",
+      "expects_no_finding": false
+    },
+    {
       "id": "ts-err-unhandled-promise-unsafe",
       "language": "typescript",
       "category": "error-handling",
@@ -4991,6 +5603,18 @@
       "description": "Unhandled promise rejection (unsafe)",
       "safe_code": "await asyncOperation().catch(err =\u003e logger.error(err))",
       "defective_code": "asyncOperation()",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-err-zone-readings-swallowed-medium",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "swallowed_catch",
+      "description": "Sensor read failure returns an empty list with no log and no callback, so a dead zone renders identically to a healthy one with no readings",
+      "safe_code": "} catch (error) {\n  logger.error('readings for zone ' + zoneId + ' failed', error)\n  onError('Sensor readings are unavailable right now.')\n  return []\n}",
+      "defective_code": "} catch (error) {\n  return []\n}",
       "expects_no_finding": false
     },
     {
@@ -5117,6 +5741,18 @@
       "expects_no_finding": false
     },
     {
+      "id": "ts-logic-due-date-comparator-boolean-easy",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "easy",
+      "pattern": "boolean_sort_comparator",
+      "description": "The comparator answers 1 or 0 and never a negative, so rows that should move earlier stay where they are and the due-date order is wrong",
+      "safe_code": "return [...rows].sort((a, b) =\u003e a.dueOn.localeCompare(b.dueOn));",
+      "defective_code": "return [...rows].sort((a, b) =\u003e (a.dueOn \u003e b.dueOn ? 1 : 0));",
+      "expects_no_finding": false
+    },
+    {
       "id": "ts-logic-duplicate-spawn-on-recompletion-hard",
       "language": "typescript",
       "category": "logic",
@@ -5126,6 +5762,78 @@
       "description": "Completing an already-completed task spawns another successor because the guard checks the new value instead of the transition",
       "safe_code": "  if (task.completedAt) {\n    return { task }\n  }\n  const completed = { ...task, completedAt: now }",
       "defective_code": "  const completed = { ...task, completedAt: now }",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-firing-programme-guard-medium",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "partial_type_guard",
+      "description": "The guard narrows to FiringProgramme after checking only id, so a programme with no ramps or peak temperature is accepted as complete",
+      "safe_code": "const candidate = value as Partial\u003cFiringProgramme\u003e;\nreturn (\n  typeof candidate.id === 'string' \u0026\u0026\n  typeof candidate.peakCelsius === 'number' \u0026\u0026\n  typeof candidate.soakMinutes === 'number' \u0026\u0026\n  Array.isArray(candidate.ramps)\n);",
+      "defective_code": "return typeof (value as Partial\u003cFiringProgramme\u003e).id === 'string';",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-grade-filter-unstable-dep-hard",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "unstable_effect_dependency",
+      "description": "The effect depends on a filter object rebuilt each render, so the grade counts are refetched on every pass instead of when the filter changes",
+      "safe_code": "const filter = useMemo(() =\u003e ({ grades, orchardId }), [grades, orchardId]);\n\nuseEffect(() =\u003e {\n  loadGradeCounts(filter).then(setCounts);\n}, [filter]);",
+      "defective_code": "const filter = { grades, orchardId };\n\nuseEffect(() =\u003e {\n  loadGradeCounts(filter).then(setCounts);\n}, [filter]);",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-harvest-window-render-date-hard",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "fresh_object_in_render",
+      "description": "A Date built during render is a new identity every pass, so the effect that depends on it refetches and re-renders without ever settling",
+      "safe_code": "const asOf = useMemo(() =\u003e new Date(), [orchardId]);",
+      "defective_code": "const asOf = new Date();",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-has-next-page-off-by-one-medium",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "pagination_drops_final_page",
+      "description": "The next-page test looks a page too far ahead, so a total that divides evenly by the page size hides its final page from the table",
+      "safe_code": "return page * perPage \u003c total;",
+      "defective_code": "return (page + 1) * perPage \u003c total;",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-kiln-slot-parseint-radix-easy",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "easy",
+      "pattern": "parseint_missing_radix",
+      "description": "parseInt without a radix reads a caller-supplied slot, so a leading 0x is taken as hexadecimal and resolves to the wrong kiln slot",
+      "safe_code": "const slot = parseInt(raw, 10);",
+      "defective_code": "const slot = parseInt(raw);",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-ledger-row-guard-medium",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "partial_type_guard",
+      "description": "Presence of an id key is treated as proof of a LedgerRow, so a payload with no amount or due date flows on as a validated row",
+      "safe_code": "const row = value as Partial\u003cLedgerRow\u003e;\nreturn (\n  typeof row.id === 'string' \u0026\u0026\n  typeof row.plotRef === 'string' \u0026\u0026\n  typeof row.amountCents === 'number' \u0026\u0026\n  typeof row.dueOn === 'string'\n);",
+      "defective_code": "return 'id' in (value as object);",
       "expects_no_finding": false
     },
     {
@@ -5189,6 +5897,30 @@
       "expects_no_finding": false
     },
     {
+      "id": "ts-logic-page-offsets-drop-final-medium",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "pagination_drops_final_page",
+      "description": "The offset loop requires a whole page to remain, so when the total divides evenly by the page size the last page is never emitted",
+      "safe_code": "for (let offset = 0; offset \u003c total; offset += perPage) {",
+      "defective_code": "for (let offset = 0; offset + perPage \u003c total; offset += perPage) {",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-peal-summary-phantom-string-medium",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "assertion_on_unrendered_string",
+      "description": "The test asserts a composed line the component never renders, and queryByText returning null still satisfies toBeDefined, so it can never fail",
+      "safe_code": "expect(screen.getByRole('heading').textContent).toBe('St Aldric');\nexpect(screen.getByTestId('method').textContent).toBe('Grandsire Triples');\nexpect(screen.getByTestId('changes').textContent).toBe('5040');",
+      "defective_code": "expect(screen.queryByText('St Aldric - Grandsire Triples, 5040 changes')).toBeDefined();",
+      "expects_no_finding": false
+    },
+    {
       "id": "ts-logic-promise-all-settle-hard",
       "language": "typescript",
       "category": "logic",
@@ -5210,6 +5942,30 @@
       "description": "A recurring task with no dueDate silently never recurs: the summary reports a next occurrence that nextOccurrence cannot produce",
       "safe_code": "  const due = nextOccurrence(task)\n  if (!due) {\n    return `${task.title}: no further occurrences`\n  }",
       "defective_code": "  const due = nextOccurrence(task)!",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-ringed-list-render-array-hard",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "fresh_object_in_render",
+      "description": "Filtering during render produces a new array identity each pass, and the effect that reads it sets state, so the component re-renders forever",
+      "safe_code": "const visible = useMemo(() =\u003e birds.filter((b) =\u003e b.ring.startsWith(ringPrefix)), [birds, ringPrefix]);",
+      "defective_code": "const visible = birds.filter((b) =\u003e b.ring.startsWith(ringPrefix));",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-run-slot-comparator-boolean-easy",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "easy",
+      "pattern": "boolean_sort_comparator",
+      "description": "The comparator coerces a boolean, so it returns 0 or 1 and never a negative, leaving the firing runs unordered",
+      "safe_code": "return [...runs].sort((a, b) =\u003e a.slot - b.slot);",
+      "defective_code": "return [...runs].sort((a, b) =\u003e Number(a.slot \u003e b.slot));",
       "expects_no_finding": false
     },
     {
@@ -5246,6 +6002,18 @@
       "description": "typeof null === 'object' trap — null passes object check",
       "safe_code": "function isObject(val: unknown): val is Record\u003cstring, unknown\u003e {\n  return val !== null \u0026\u0026 typeof val === \"object\";\n}",
       "defective_code": "function isObject(val: unknown): val is Record\u003cstring, unknown\u003e {\n  return typeof val === \"object\";\n}",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-logic-zone-summary-inline-dep-hard",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "Medium",
+      "difficulty": "hard",
+      "pattern": "unstable_effect_dependency",
+      "description": "The dependency array holds an array mapped inline, which is never equal to the previous render's, so the summary is recomputed every pass",
+      "safe_code": "const zoneIds = useMemo(() =\u003e zones.map((z) =\u003e z.id).sort(), [zones]);\n\nuseEffect(() =\u003e {\n  setSummary(summariseZones(zoneIds));\n}, [zoneIds]);",
+      "defective_code": "const zoneIds = zones.map((z) =\u003e z.id).sort();\n\nuseEffect(() =\u003e {\n  setSummary(summariseZones(zoneIds));\n}, [zones.map((z) =\u003e z.id)]);",
       "expects_no_finding": false
     },
     {
@@ -5333,6 +6101,30 @@
       "expects_no_finding": false
     },
     {
+      "id": "ts-null-feed-schedule-nested-medium",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "unverified_nested_response",
+      "description": "Nested sailings array is read straight off the feed response without checking the schedule block is a non-null object",
+      "safe_code": "const schedule = response.schedule\nif (!schedule || typeof schedule !== 'object') {\n  return []\n}\nreturn schedule.sailings",
+      "defective_code": "return response.schedule.sailings",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-null-grade-groups-hard",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "unchecked_regexp_exec",
+      "description": "Capture group is indexed off RegExp.exec without the null check, and a setter typing a project grade rather than a V grade reaches it",
+      "safe_code": "const groups = GRADE.exec(grade)\nif (groups === null) {\n  return -1\n}\nreturn Number.parseInt(groups[1], 10)",
+      "defective_code": "const groups = GRADE.exec(grade)\nreturn Number.parseInt(groups[1], 10)",
+      "expects_no_finding": false
+    },
+    {
       "id": "ts-null-invalid-date-serialize-medium",
       "language": "typescript",
       "category": "null-safety",
@@ -5345,6 +6137,30 @@
       "expects_no_finding": false
     },
     {
+      "id": "ts-null-next-sailing-first-medium",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "Medium",
+      "difficulty": "medium",
+      "pattern": "index_on_empty_filter",
+      "description": "First element of a filtered sailings array is returned without an emptiness check, so the last crossing of the day yields undefined typed as Sailing",
+      "safe_code": "const upcoming = sailings.filter((s) =\u003e s.pier === pier \u0026\u0026 s.departsAt \u003e after)\nif (upcoming.length === 0) {\n  return null\n}\nreturn upcoming[0]",
+      "defective_code": "const upcoming = sailings.filter((s) =\u003e s.pier === pier \u0026\u0026 s.departsAt \u003e after)\nreturn upcoming[0]",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-null-notes-length-easy",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "Medium",
+      "difficulty": "easy",
+      "pattern": "length_on_optional",
+      "description": "Length is read off an optional notes field without a guard, so a recipe saved with no notes throws",
+      "safe_code": "return (recipe.notes?.length ?? 0) \u003e 0",
+      "defective_code": "return recipe.notes.length \u003e 0",
+      "expects_no_finding": false
+    },
+    {
       "id": "ts-null-optional-chain-easy",
       "language": "typescript",
       "category": "null-safety",
@@ -5354,6 +6170,54 @@
       "description": "Missing optional chaining",
       "safe_code": "const name = user?.profile?.name ?? \"Unknown\"",
       "defective_code": "const name = user.profile.name",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-null-quantity-match-bang-medium",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "non_null_assertion_on_match",
+      "description": "Non-null assertion is applied to String.match, which returns null for an ingredient line carrying no quantity",
+      "safe_code": "const matched = line.match(QUANTITY)\nif (!matched) {\n  throw new Error(`ingredient line carries no quantity: ${line}`)\n}\nreturn Number(matched[1])",
+      "defective_code": "const matched = line.match(QUANTITY)!\nreturn Number(matched[1])",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-null-unit-split-destructure-medium",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "unchecked_split_destructure",
+      "description": "Split result is destructured assuming two elements, so a pantry entry with no colon leaves the unit undefined and trim throws",
+      "safe_code": "const parts = entry.split(':')\nif (parts.length \u003c 2) {\n  throw new Error(`pantry entry must be \"amount:unit\", got ${entry}`)\n}\nreturn { amount: parts[0].trim(), unit: parts[1].trim() }",
+      "defective_code": "const [amount, unit] = entry.split(':')\nreturn { amount: amount.trim(), unit: unit.trim() }",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-null-vessel-operator-chain-easy",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "easy",
+      "pattern": "missing_optional_chain",
+      "description": "Optional chaining is dropped on the optional vessel and operator, so an unassigned sailing throws while rendering the timetable",
+      "safe_code": "return sailing.vessel?.operator?.name ?? 'operator not assigned'",
+      "defective_code": "return sailing.vessel.operator.name",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-null-wall-cache-get-hard",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "Medium",
+      "difficulty": "hard",
+      "pattern": "map_get_undefined",
+      "description": "Map.get result is used without the undefined check, which only bites on the first read of a wall before the cache has been filled",
+      "safe_code": "const cached = routesByWall.get(wall)\nif (cached === undefined) {\n  return 0\n}\nreturn cached.length",
+      "defective_code": "const cached = routesByWall.get(wall)\nreturn cached.length",
       "expects_no_finding": false
     },
     {
