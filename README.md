@@ -16,7 +16,7 @@ Other cases invert that: the code stays correct, or is rewritten into a differen
 
 ## Checking the corpus yourself
 
-`corpus.json` carries all 547 cases — every one, unfiltered — each with the exact code before and after:
+`corpus.json` carries all 586 cases — every one, unfiltered — each with the exact code before and after:
 
 ```json
 {
@@ -34,7 +34,7 @@ Other cases invert that: the code stays correct, or is rewritten into a differen
 
 `safe_code` appears verbatim in the fixture file for that language, so you can find it, apply the substitution by hand, and see the pull request Rami was asked to review. From there you can judge whether a case is a real defect or a token swap, whether the difficulty labels are honest, and how much of the corpus is made of the easy kind.
 
-42 of the 547 are the opposite test, flagged `expects_no_finding`: the code stays correct and the expected result is silence. Their diffs are ordinary refactors — a local extracted, a body reflowed — with nothing in them that hints at the answer, so a reviewer has to read the code to stay quiet.
+62 of the 586 are the opposite test, flagged `expects_no_finding`: the code stays correct and the expected result is silence. Their diffs are ordinary refactors — a local extracted, a body reflowed — with nothing in them that hints at the answer, so a reviewer has to read the code to stay quiet.
 
 **What this does not establish.** That a published number came from this corpus, and that the scoring was fair. Both need the runner, which is not distributed. Read the cases and decide what a score against them would be worth — that judgment is the point, and it is the part we can hand you.
 
@@ -42,19 +42,19 @@ For a stronger check, point Rami at your own repository and read the review.
 
 ## Coverage
 
-547 cases across 11 languages, every one of which runs.
+586 cases across 11 languages, every one of which runs.
 
 | Language | Cases |
 |---|---|
-| Go | 132 |
-| TypeScript | 122 |
-| Python | 89 |
+| Go | 146 |
+| TypeScript | 133 |
+| Python | 101 |
 | Java | 72 |
 | C# | 39 |
 | JavaScript | 38 |
 | Rust | 34 |
 | Shell | 12 |
-| Terraform | 4 |
+| Terraform | 6 |
 | YAML | 3 |
 | Dockerfile | 2 |
 

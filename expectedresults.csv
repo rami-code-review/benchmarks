@@ -429,3 +429,8 @@ shell/lg_lock_gate.sh,sh-logic-gate-iterator-unquoted-easy,CWE-88,logic,FN,easy,
 shell/lg_lock_gate.sh,sh-logic-attempt-count-string-compare-medium,CWE-697,logic,FN,medium,shell
 shell/lg_lock_gate.sh,sh-logic-pipeline-status-wrong-command-hard,CWE-754,logic,FN,hard,shell
 shell/lg_beacon_check.sh,sh-logic-beacon-hardcoded-host-medium,CWE-547,logic,FN,medium,shell
+infra/main.tf,infra-fp-version-recency-terraform-core,CWE-1104,false-positive,FP,medium,terraform
+infra/main.tf,infra-fp-version-recency-aws-provider,CWE-1104,false-positive,FP,medium,terraform
+go/toolversions/go.mod,go-fp-version-recency-toolchain,CWE-1104,false-positive,FP,medium,go
+go/toolversions/go.mod,go-fp-version-recency-module-bump,CWE-1104,false-positive,FP,medium,go
+python/requirements.txt,py-fp-version-recency-requirements,CWE-1104,false-positive,FP,medium,python

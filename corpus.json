@@ -1,6 +1,6 @@
 {
-  "corpus_version": "v20260820-1",
-  "total_cases": 547,
+  "corpus_version": "v20260901-1",
+  "total_cases": 586,
   "cases": [
     {
       "id": "cs-auth-timing-easy",
@@ -528,6 +528,30 @@
       "description": "Command injection via sprintf in command string",
       "safe_code": "args := []string{\"-u\", username}\nexec.Command(\"id\", args...)",
       "defective_code": "cmd := fmt.Sprintf(\"id -u %s\", username)\nexec.Command(\"sh\", \"-c\", cmd)",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-comment-narration-easy",
+      "language": "go",
+      "category": "maintainability",
+      "severity": "Low",
+      "difficulty": "easy",
+      "pattern": "change_narration_comment",
+      "description": "Comment narrates the edit instead of describing the code",
+      "safe_code": "func RetryOperation(op func() error) error {",
+      "defective_code": "// updated to retry the operation with a maximum number of attempts\nfunc RetryOperation(op func() error) error {",
+      "expects_no_finding": false
+    },
+    {
+      "id": "go-comment-restate-easy",
+      "language": "go",
+      "category": "maintainability",
+      "severity": "Low",
+      "difficulty": "easy",
+      "pattern": "restating_comment",
+      "description": "Comment restates the adjacent code in prose",
+      "safe_code": "return fmt.Errorf(\"operation failed after retries\")",
+      "defective_code": "// return an error because the operation failed after retries\nreturn fmt.Errorf(\"operation failed after retries\")",
       "expects_no_finding": false
     },
     {
@@ -1249,6 +1273,30 @@
       "description": "FALSE POSITIVE: sync.Once for safe lazy initialization",
       "safe_code": "var (\n\tinstance *Client\n\tonce     sync.Once\n)\n\nfunc GetClient() *Client {\n\tonce.Do(func() {\n\t\tinstance = \u0026Client{}\n\t})\n\treturn instance\n}",
       "defective_code": "var instance *Client\n\nvar once sync.Once\n\nfunc GetClient() *Client {\n\tonce.Do(func() {\n\t\tinstance = \u0026Client{}\n\t})\n\treturn instance\n}",
+      "expects_no_finding": true
+    },
+    {
+      "id": "go-fp-version-recency-module-bump",
+      "language": "go",
+      "category": "maintainability",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "false_positive_version_recency",
+      "description": "FALSE POSITIVE: module requirement bumped to a released tag newer than the reviewer's knowledge cutoff",
+      "safe_code": "golang.org/x/sync v0.10.0",
+      "defective_code": "golang.org/x/sync v0.22.0",
+      "expects_no_finding": true
+    },
+    {
+      "id": "go-fp-version-recency-toolchain",
+      "language": "go",
+      "category": "maintainability",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "false_positive_version_recency",
+      "description": "FALSE POSITIVE: go directive raised to a released toolchain version that may postdate the reviewer's knowledge cutoff",
+      "safe_code": "go 1.23.0",
+      "defective_code": "go 1.25.14",
       "expects_no_finding": true
     },
     {
@@ -2083,6 +2131,156 @@
       ]
     },
     {
+      "id": "go-xf-cleanup-ownership-moved",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_cleanup_ownership",
+      "description": "stageUpload now keeps the temp file for the caller to promote, and a non-PR caller never removes it on the abort path",
+      "safe_code": "func stageUpload(u Upload) (string, error) { path, err := writeTemp(u); if err != nil { removeTemp(path); return \"\", err }; return path, nil }",
+      "defective_code": "// stageUpload writes the upload to a temp path and returns it. The caller\n// owns the staged file from here on, including cleanup on abort.\nfunc stageUpload(u Upload) (string, error) {\n\tpath, err := writeTemp(u)\n\tif err != nil {\n\t\treturn \"\", err\n\t}\n\treturn path, nil\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "upload_commit.go"
+      ]
+    },
+    {
+      "id": "go-xf-cleanup-ownership-moved-safe",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_cleanup_ownership_safe",
+      "description": "FALSE POSITIVE: stageImport moved cleanup to the caller and its only non-PR caller defers removal already",
+      "safe_code": "func stageImport(b Bundle) (string, error) { path, err := writeTemp2(b); if err != nil { removeTemp(path); return \"\", err }; return path, nil }",
+      "defective_code": "// stageImport writes the bundle to a temp path and returns it. The caller\n// owns the staged file from here on, including cleanup on abort.\nfunc stageImport(b Bundle) (string, error) {\n\tpath, err := writeTemp2(b)\n\tif err != nil {\n\t\treturn \"\", err\n\t}\n\treturn path, nil\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "import_runner.go"
+      ]
+    },
+    {
+      "id": "go-xf-contract-nilable-return",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_nilable_return",
+      "description": "findSubscription now returns nil for missing rows and a non-PR caller dereferences the result unchecked",
+      "safe_code": "func findSubscription(id string) *Subscription { sub := subs.Lookup(id); if sub == nil { return \u0026Subscription{Status: \"none\"} }; return sub }",
+      "defective_code": "// findSubscription returns the subscription, or nil when the id is unknown.\nfunc findSubscription(id string) *Subscription {\n\treturn subs.Lookup(id)\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "billing_cycle.go"
+      ]
+    },
+    {
+      "id": "go-xf-contract-nilable-return-safe",
+      "language": "go",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_nilable_return_safe",
+      "description": "FALSE POSITIVE: findCoupon returns nil for missing rows and its only non-PR caller nil-checks before use",
+      "safe_code": "func findCoupon(code string) *Coupon { c := coupons.Lookup(code); if c == nil { return \u0026Coupon{Percent: 0} }; return c }",
+      "defective_code": "// findCoupon returns the coupon, or nil when the code is unknown.\nfunc findCoupon(code string) *Coupon {\n\treturn coupons.Lookup(code)\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "checkout_discount.go"
+      ]
+    },
+    {
+      "id": "go-xf-dedup-key-narrowed",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_dedup_key_narrowed",
+      "description": "webhookKey dropped the event type from the dedup key and a non-PR consumer relies on per-type delivery",
+      "safe_code": "func webhookKey(e Event) string { return e.Source + \":\" + e.Type + \":\" + e.ID }",
+      "defective_code": "// webhookKey identifies an event for deduplication. Keying by source and id\n// keeps the dedup table small.\nfunc webhookKey(e Event) string {\n\treturn e.Source + \":\" + e.ID\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "webhook_fanout.go"
+      ]
+    },
+    {
+      "id": "go-xf-dedup-key-narrowed-safe",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_dedup_key_narrowed_safe",
+      "description": "FALSE POSITIVE: auditKey dropped the event type and its only non-PR consumer treats any same-id event as one audit entry",
+      "safe_code": "func auditKey(e Event) string { return e.Source + \":\" + e.Type + \":\" + e.ID }",
+      "defective_code": "// auditKey identifies an event for audit-log deduplication. Keying by source\n// and id keeps the audit table small.\nfunc auditKey(e Event) string {\n\treturn e.Source + \":\" + e.ID\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "audit_ingest.go"
+      ]
+    },
+    {
+      "id": "go-xf-sentinel-error-change",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_sentinel_change",
+      "description": "loadProfile stopped returning ErrProfileMissing for absent rows and a non-PR caller branches on errors.Is to create the profile",
+      "safe_code": "func loadProfile(id string) (*Profile, error) { p := profileStore.Get(id); if p == nil { return nil, ErrProfileMissing }; return p, nil }",
+      "defective_code": "// loadProfile returns the stored profile; an absent row yields an empty\n// profile so callers can treat missing and new accounts uniformly.\nfunc loadProfile(id string) (*Profile, error) {\n\tp := profileStore.Get(id)\n\tif p == nil {\n\t\treturn \u0026Profile{}, nil\n\t}\n\treturn p, nil\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "profile_bootstrap.go"
+      ]
+    },
+    {
+      "id": "go-xf-sentinel-error-change-safe",
+      "language": "go",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_sentinel_change_safe",
+      "description": "FALSE POSITIVE: loadDraft stopped returning ErrDraftMissing and its only non-PR caller already treats an empty draft as new",
+      "safe_code": "func loadDraft(id string) (*Draft, error) { d := draftStore.Get(id); if d == nil { return nil, ErrDraftMissing }; return d, nil }",
+      "defective_code": "// loadDraft returns the stored draft; an absent row yields an empty draft so\n// callers can treat missing and new drafts uniformly.\nfunc loadDraft(id string) (*Draft, error) {\n\td := draftStore.Get(id)\n\tif d == nil {\n\t\treturn \u0026Draft{}, nil\n\t}\n\treturn d, nil\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "draft_editor.go"
+      ]
+    },
+    {
+      "id": "go-xf-units-contract-change",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_units_change",
+      "description": "retentionWindow changed from days to hours and a non-PR caller still multiplies by 24",
+      "safe_code": "func retentionWindow(plan string) int { if plan == \"pro\" { return 90 }; return 30 }",
+      "defective_code": "// retentionWindow returns how long exports are kept, in hours.\nfunc retentionWindow(plan string) int {\n\tif plan == \"pro\" {\n\t\treturn 90 * 24\n\t}\n\treturn 30 * 24\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "export_pruner.go"
+      ]
+    },
+    {
+      "id": "go-xf-units-contract-change-safe",
+      "language": "go",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_units_change_safe",
+      "description": "FALSE POSITIVE: archiveWindow changed from days to hours and its only non-PR caller was updated in an earlier change",
+      "safe_code": "func archiveWindow(plan string) int { if plan == \"pro\" { return 365 }; return 180 }",
+      "defective_code": "// archiveWindow returns how long archives are kept, in hours.\nfunc archiveWindow(plan string) int {\n\tif plan == \"pro\" {\n\t\treturn 365 * 24\n\t}\n\treturn 180 * 24\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "archive_pruner.go"
+      ]
+    },
+    {
       "id": "infra-dockerfile-latest-tag-medium",
       "language": "dockerfile",
       "category": "security",
@@ -2105,6 +2303,30 @@
       "safe_code": "USER appuser",
       "defective_code": "USER root",
       "expects_no_finding": false
+    },
+    {
+      "id": "infra-fp-version-recency-aws-provider",
+      "language": "terraform",
+      "category": "security",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "false_positive_version_recency",
+      "description": "FALSE POSITIVE: AWS provider constraint moved to a released major version newer than the reviewer's knowledge cutoff",
+      "safe_code": "version = \"~\u003e 5.60\"",
+      "defective_code": "version = \"~\u003e 6.8\"",
+      "expects_no_finding": true
+    },
+    {
+      "id": "infra-fp-version-recency-terraform-core",
+      "language": "terraform",
+      "category": "security",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "false_positive_version_recency",
+      "description": "FALSE POSITIVE: required_version raised to a released Terraform version that may postdate the reviewer's knowledge cutoff",
+      "safe_code": "required_version = \"\u003e= 1.9.0\"",
+      "defective_code": "required_version = \"\u003e= 1.13.0\"",
+      "expects_no_finding": true
     },
     {
       "id": "infra-k8s-latest-tag-medium",
@@ -3619,6 +3841,18 @@
       "expects_no_finding": false
     },
     {
+      "id": "py-comment-divider-easy",
+      "language": "python",
+      "category": "maintainability",
+      "severity": "Low",
+      "difficulty": "easy",
+      "pattern": "section_divider_comment",
+      "description": "Section divider banner comment",
+      "safe_code": "def fetch_from_allowlist(url_key: str) -\u003e bytes:",
+      "defective_code": "# ============ helper functions ============\ndef fetch_from_allowlist(url_key: str) -\u003e bytes:",
+      "expects_no_finding": false
+    },
+    {
       "id": "py-crypto-md5-easy",
       "language": "python",
       "category": "security",
@@ -3956,6 +4190,18 @@
       "description": "FALSE POSITIVE: Subprocess with constant args",
       "safe_code": "subprocess.run([\"ls\", \"-la\", \"/tmp\"], check=True)",
       "defective_code": "listing_argv = [\"ls\", \"-la\", \"/tmp\"]\nsubprocess.run(listing_argv, check=True)",
+      "expects_no_finding": true
+    },
+    {
+      "id": "py-fp-version-recency-requirements",
+      "language": "python",
+      "category": "maintainability",
+      "severity": "High",
+      "difficulty": "medium",
+      "pattern": "false_positive_version_recency",
+      "description": "FALSE POSITIVE: pinned package bumped to a released version newer than the reviewer's knowledge cutoff",
+      "safe_code": "flask==3.0.3",
+      "defective_code": "flask==3.1.1",
       "expects_no_finding": true
     },
     {
@@ -4557,6 +4803,156 @@
       "safe_code": "    if category not in VALID_CATEGORIES:\n        raise ValueError(\"invalid category\")\n    return [t for t in txns if t[\"category\"] == category]",
       "defective_code": "    return [t for t in txns if t[\"category\"] == category]",
       "expects_no_finding": false
+    },
+    {
+      "id": "py-xf-cleanup-ownership",
+      "language": "python",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_cleanup_ownership",
+      "description": "checkout_workspace no longer removes the dir on setup failure and a non-PR caller returns early without cleanup",
+      "safe_code": "def checkout_workspace(build_id):\n    path = make_workdir(build_id)\n    try:\n        fetch_sources(path)\n    except FetchError:\n        remove_workdir(path)\n        raise\n    return path",
+      "defective_code": "def checkout_workspace(build_id):\n    \"\"\"Create the build workspace and return its path. The caller owns the\n    directory from here on, including cleanup when source fetch fails.\"\"\"\n    path = make_workdir(build_id)\n    fetch_sources(path)\n    return path",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "ci/runner.py"
+      ]
+    },
+    {
+      "id": "py-xf-cleanup-ownership-safe",
+      "language": "python",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_cleanup_ownership_safe",
+      "description": "FALSE POSITIVE: stage_artifacts moved cleanup to the caller and its only non-PR caller cleans in finally",
+      "safe_code": "def stage_artifacts(build_id):\n    path = make_stagedir(build_id)\n    try:\n        collect_artifacts(path)\n    except CollectError:\n        remove_stagedir(path)\n        raise\n    return path",
+      "defective_code": "def stage_artifacts(build_id):\n    \"\"\"Stage build artifacts and return the staging path. The caller owns the\n    directory from here on, including cleanup when collection fails.\"\"\"\n    path = make_stagedir(build_id)\n    collect_artifacts(path)\n    return path",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "ci/publisher.py"
+      ]
+    },
+    {
+      "id": "py-xf-dedup-key-narrowed",
+      "language": "python",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_dedup_key_narrowed",
+      "description": "alert_key dropped the severity from the key and a non-PR consumer relies on per-severity alerting",
+      "safe_code": "def alert_key(alert):\n    return f\"{alert.service}:{alert.severity}:{alert.check_id}\"",
+      "defective_code": "def alert_key(alert):\n    \"\"\"Identify an alert for deduplication. Keying by service and check keeps\n    the dedup table small.\"\"\"\n    return f\"{alert.service}:{alert.check_id}\"",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "alerts/router.py"
+      ]
+    },
+    {
+      "id": "py-xf-dedup-key-narrowed-safe",
+      "language": "python",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_dedup_key_narrowed_safe",
+      "description": "FALSE POSITIVE: incident_key dropped the severity and its only non-PR consumer tracks severity transitions inside one incident",
+      "safe_code": "def incident_key(alert):\n    return f\"{alert.service}:{alert.severity}:{alert.check_id}\"",
+      "defective_code": "def incident_key(alert):\n    \"\"\"Identify the incident an alert belongs to. One incident per check:\n    severity transitions are tracked inside the incident row.\"\"\"\n    return f\"{alert.service}:{alert.check_id}\"",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "alerts/incidents.py"
+      ]
+    },
+    {
+      "id": "py-xf-optional-return",
+      "language": "python",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_nilable_return",
+      "description": "find_report now returns None for purged ids and a non-PR caller reads .pages without a guard",
+      "safe_code": "def find_report(report_id):\n    report = _reports.get(report_id)\n    if report is None:\n        return Report(pages=0)\n    return report",
+      "defective_code": "def find_report(report_id):\n    \"\"\"Return the report, or None for purged ids so callers can distinguish\n    purged reports from empty ones.\"\"\"\n    return _reports.get(report_id)",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "reports/summary.py"
+      ]
+    },
+    {
+      "id": "py-xf-optional-return-safe",
+      "language": "python",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_nilable_return_safe",
+      "description": "FALSE POSITIVE: find_export now returns None and its only non-PR caller filters None before use",
+      "safe_code": "def find_export(export_id):\n    export = _exports.get(export_id)\n    if export is None:\n        return Export(rows=0)\n    return export",
+      "defective_code": "def find_export(export_id):\n    \"\"\"Return the export, or None for purged ids.\"\"\"\n    return _exports.get(export_id)",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "exports/totals.py"
+      ]
+    },
+    {
+      "id": "py-xf-sentinel-exc-change",
+      "language": "python",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_sentinel_change",
+      "description": "load_job stopped raising JobMissing for unknown ids and a non-PR caller uses the exception to requeue",
+      "safe_code": "def load_job(job_id):\n    job = _jobs.get(job_id)\n    if job is None:\n        raise JobMissing(job_id)\n    return job",
+      "defective_code": "def load_job(job_id):\n    \"\"\"Return the job; unknown ids yield an empty job so callers can treat\n    missing and freshly-created jobs uniformly.\"\"\"\n    job = _jobs.get(job_id)\n    if job is None:\n        return {}\n    return job",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "queue/requeue.py"
+      ]
+    },
+    {
+      "id": "py-xf-sentinel-exc-change-safe",
+      "language": "python",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_sentinel_change_safe",
+      "description": "FALSE POSITIVE: load_note stopped raising NoteMissing and its only non-PR caller already treats an empty note as new",
+      "safe_code": "def load_note(note_id):\n    note = _notes.get(note_id)\n    if note is None:\n        raise NoteMissing(note_id)\n    return note",
+      "defective_code": "def load_note(note_id):\n    \"\"\"Return the note; unknown ids yield an empty note so the editor can\n    treat missing and new notes uniformly.\"\"\"\n    note = _notes.get(note_id)\n    if note is None:\n        return {}\n    return note",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "notes/editor.py"
+      ]
+    },
+    {
+      "id": "py-xf-units-change",
+      "language": "python",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_units_change",
+      "description": "snapshot_interval changed from minutes to seconds and a non-PR caller still multiplies by 60",
+      "safe_code": "def snapshot_interval(tier):\n    return 15 if tier == \"pro\" else 60",
+      "defective_code": "def snapshot_interval(tier):\n    \"\"\"Return how often snapshots run, in seconds.\"\"\"\n    return 15 * 60 if tier == \"pro\" else 60 * 60",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "backup/scheduler.py"
+      ]
+    },
+    {
+      "id": "py-xf-units-change-safe",
+      "language": "python",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_units_change_safe",
+      "description": "FALSE POSITIVE: prune_interval changed from minutes to seconds and its only non-PR caller was already migrated",
+      "safe_code": "def prune_interval(tier):\n    return 30 if tier == \"pro\" else 120",
+      "defective_code": "def prune_interval(tier):\n    \"\"\"Return how often pruning runs, in seconds.\"\"\"\n    return 30 * 60 if tier == \"pro\" else 120 * 60",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "backup/pruner.py"
+      ]
     },
     {
       "id": "py-xss-flask-unsafe",
@@ -5411,6 +5807,18 @@
       "description": "Command injection via spawn with shell option",
       "safe_code": "const child = spawn('ls', ['-la', directory]);",
       "defective_code": "const child = spawn(`ls -la ${directory}`, { shell: true });",
+      "expects_no_finding": false
+    },
+    {
+      "id": "ts-comment-verbose-medium",
+      "language": "typescript",
+      "category": "maintainability",
+      "severity": "Low",
+      "difficulty": "medium",
+      "pattern": "verbose_comment",
+      "description": "Multi-line narration that buries a self-evident type in filler",
+      "safe_code": "interface User {\n  id: number;\n  name: string;",
+      "defective_code": "// This interface is responsible for representing a user object in the system.\n// It is important to note that it contains the user's unique identifier as well\n// as the user's display name, which are used throughout the application.\ninterface User {\n  id: number;\n  name: string;",
       "expects_no_finding": false
     },
     {
@@ -6531,6 +6939,156 @@
       "safe_code": "if (isUser(data)) {\n  const user = data;\n}",
       "defective_code": "const user = data as User",
       "expects_no_finding": false
+    },
+    {
+      "id": "ts-xf-cache-key-narrowed",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_dedup_key_narrowed",
+      "description": "notificationKey dropped the channel from the key and a non-PR consumer relies on per-channel delivery",
+      "safe_code": "export function notificationKey(n: Notice): string { return n.userId + \":\" + n.channel + \":\" + n.eventId; }",
+      "defective_code": "// notificationKey identifies a notice for throttling. Keying by user and\n// event keeps the throttle table small.\nexport function notificationKey(n: Notice): string {\n  return n.userId + \":\" + n.eventId;\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "notify/dispatch.ts"
+      ]
+    },
+    {
+      "id": "ts-xf-cache-key-narrowed-safe",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_dedup_key_narrowed_safe",
+      "description": "FALSE POSITIVE: digestKey dropped the channel and its only non-PR consumer batches all channels into one digest",
+      "safe_code": "export function digestKey(n: Notice): string { return n.userId + \":\" + n.channel + \":\" + n.eventId; }",
+      "defective_code": "// digestKey identifies a notice for the daily digest. Keying by user and\n// event keeps the digest table small.\nexport function digestKey(n: Notice): string {\n  return n.userId + \":\" + n.eventId;\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "notify/digest.ts"
+      ]
+    },
+    {
+      "id": "ts-xf-cleanup-ownership",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_cleanup_ownership",
+      "description": "acquireLock no longer releases on validation failure and a non-PR caller returns early without releasing",
+      "safe_code": "export async function withLock(name: string): Promise\u003cLock\u003e { const l = await locks.acquire(name); if (!l.valid) { await locks.release(name); throw new Error(\"invalid lock\"); } return l; }",
+      "defective_code": "// withLock acquires a named lock and returns it. The caller owns release,\n// including when the returned lock fails validation.\nexport async function withLock(name: string): Promise\u003cLock\u003e {\n  const l = await locks.acquire(name);\n  if (!l.valid) {\n    throw new Error(\"invalid lock\");\n  }\n  return l;\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "jobs/rebalance.ts"
+      ]
+    },
+    {
+      "id": "ts-xf-cleanup-ownership-safe",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_cleanup_ownership_safe",
+      "description": "FALSE POSITIVE: openExport no longer closes on header failure and its only non-PR caller closes in finally",
+      "safe_code": "export async function openExport(name: string): Promise\u003cHandle\u003e { const h = await files.open(name); if (!h.writable) { await files.close(h); throw new Error(\"not writable\"); } return h; }",
+      "defective_code": "// openExport opens an export handle. The caller owns close, including when\n// the handle fails the writability check.\nexport async function openExport(name: string): Promise\u003cHandle\u003e {\n  const h = await files.open(name);\n  if (!h.writable) {\n    throw new Error(\"not writable\");\n  }\n  return h;\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "exports/writer.ts"
+      ]
+    },
+    {
+      "id": "ts-xf-optional-return",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_nilable_return",
+      "description": "lookupPlan now returns undefined for retired plans and a non-PR caller reads .price without a guard",
+      "safe_code": "export function lookupPlan(code: string): Plan { return planTable.get(code) ?? { code, price: 0 }; }",
+      "defective_code": "// lookupPlan returns the plan, or undefined for retired codes so callers can\n// distinguish retired plans from free ones.\nexport function lookupPlan(code: string): Plan | undefined {\n  return planTable.get(code);\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "billing/invoice.ts"
+      ]
+    },
+    {
+      "id": "ts-xf-optional-return-safe",
+      "language": "typescript",
+      "category": "null-safety",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_nilable_return_safe",
+      "description": "FALSE POSITIVE: lookupAddon now returns undefined and its only non-PR caller filters undefined before use",
+      "safe_code": "export function lookupAddon(code: string): Addon { return addonTable.get(code) ?? { code, price: 0 }; }",
+      "defective_code": "// lookupAddon returns the addon, or undefined for retired codes.\nexport function lookupAddon(code: string): Addon | undefined {\n  return addonTable.get(code);\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "billing/addons.ts"
+      ]
+    },
+    {
+      "id": "ts-xf-sentinel-null-change",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_sentinel_change",
+      "description": "getSession stopped returning null for unknown tokens and a non-PR caller uses the null to force re-login",
+      "safe_code": "export function getSession(token: string): Session | null { const s = sessionCache.get(token); return s ?? null; }",
+      "defective_code": "// getSession returns the session for a token; unknown tokens yield a guest\n// session so downstream code can treat every request uniformly.\nexport function getSession(token: string): Session | null {\n  const s = sessionCache.get(token);\n  return s ?? { user: \"guest\", scopes: [] };\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "middleware/authGate.ts"
+      ]
+    },
+    {
+      "id": "ts-xf-sentinel-null-change-safe",
+      "language": "typescript",
+      "category": "error-handling",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_sentinel_change_safe",
+      "description": "FALSE POSITIVE: getTheme stopped returning null and its only non-PR caller already treats any theme as renderable",
+      "safe_code": "export function getTheme(id: string): Theme | null { const t = themeCache.get(id); return t ?? null; }",
+      "defective_code": "// getTheme returns the stored theme; unknown ids yield the default theme so\n// rendering never needs a null branch.\nexport function getTheme(id: string): Theme | null {\n  const t = themeCache.get(id);\n  return t ?? { name: \"default\", dark: false };\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "render/page.ts"
+      ]
+    },
+    {
+      "id": "ts-xf-units-change",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_units_change",
+      "description": "sessionTtl changed from minutes to seconds and a non-PR caller still multiplies by 60",
+      "safe_code": "export function sessionTtl(plan: string): number { return plan === \"pro\" ? 240 : 60; }",
+      "defective_code": "// sessionTtl returns how long sessions live, in seconds.\nexport function sessionTtl(plan: string): number {\n  return plan === \"pro\" ? 240 * 60 : 60 * 60;\n}",
+      "expects_no_finding": false,
+      "supporting_files": [
+        "auth/expiry.ts"
+      ]
+    },
+    {
+      "id": "ts-xf-units-change-safe",
+      "language": "typescript",
+      "category": "logic",
+      "severity": "High",
+      "difficulty": "hard",
+      "pattern": "crossfile_units_change_safe",
+      "description": "FALSE POSITIVE: tokenTtl changed from minutes to seconds and its only non-PR caller was already migrated",
+      "safe_code": "export function tokenTtl(plan: string): number { return plan === \"pro\" ? 30 : 10; }",
+      "defective_code": "// tokenTtl returns how long refresh tokens live, in seconds.\nexport function tokenTtl(plan: string): number {\n  return plan === \"pro\" ? 30 * 60 : 10 * 60;\n}",
+      "expects_no_finding": true,
+      "supporting_files": [
+        "auth/tokens.ts"
+      ]
     },
     {
       "id": "ts-xss-dangerously-easy",
